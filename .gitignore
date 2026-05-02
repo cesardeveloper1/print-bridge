@@ -1,0 +1,40 @@
+# Dependencias
+node_modules/
+
+# Compilado TypeScript
+dist/
+*.tsbuildinfo
+
+# Binarios pkg
+release/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Logs y depuración
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Cobertura y pruebas
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporal
+tmp/
+temp/
+*.tmp

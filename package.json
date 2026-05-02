@@ -1,0 +1,30 @@
+{
+  "name": "maxy-print-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bridge local WebSocket → impresora térmica ESC/POS (sin diálogo del navegador)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "npx ts-node --transpile-only src/index.ts",
+    "pkg:win": "npm run build && pkg dist/index.js --targets node18-win-x64 --output release/maxy-print-bridge-win.exe"
+  },
+  "pkg": {
+    "scripts": "dist/**/*.js"
+  },
+  "dependencies": {
+    "node-thermal-printer": "^4.4.3",
+    "p-queue": "^8.0.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/ws": "^8.5.10",
+    "pkg": "^5.8.1",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
