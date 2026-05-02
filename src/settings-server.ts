@@ -1,0 +1,181 @@
+import * as http from 'http';
+import { readUserConfig, writeUserConfig } from './config-store';
+import { listWindowsPrinters } from './windows-printers';
+
+function json(res: http.ServerResponse, code: number, body: unknown) {
+  res.writeHead(code, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(JSON.stringify(body));
+}
+
+function html(res: http.ServerResponse, code: number, body: string) {
+  res.writeHead(code, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(body);
+}
+
+function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c) => chunks.push(c as Buffer));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+const SETTINGS_PAGE = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maxy — Impresora térmica</title>
+  <style>
+    :root { font-family: system-ui, Segoe UI, sans-serif; color: #1e293b; }
+    body { max-width: 520px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+    p.sub { color: #64748b; font-size: 0.9rem; margin-top: 0; }
+    label { display: block; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+    select { width: 100%; padding: 0.6rem 0.75rem; font-size: 1rem; border-radius: 8px; border: 1px solid #cbd5e1; }
+    button { margin-top: 1.25rem; padding: 0.65rem 1.25rem; font-size: 0.95rem; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; background: #7c3aed; color: #fff; }
+    button:hover { background: #6d28d9; }
+    .ok { margin-top: 1rem; padding: 0.75rem; background: #ecfdf5; color: #047857; border-radius: 8px; display: none; }
+    .err { margin-top: 1rem; padding: 0.75rem; background: #fef2f2; color: #b91c1c; border-radius: 8px; display: none; }
+    .hint { font-size: 0.85rem; color: #64748b; margin-top: 1.5rem; line-height: 1.4; }
+    code { background: #f1f5f9; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>Impresora para tickets</h1>
+  <p class="sub">Elija la impresora térmica. No hace falta configurar nada más en Windows.</p>
+
+  <label for="printer">Impresora</label>
+  <select id="printer"></select>
+
+  <div>
+    <button type="button" id="save">Guardar</button>
+  </div>
+  <div class="ok" id="ok">Guardado. Ya puede cerrar esta ventana.</div>
+  <div class="err" id="err"></div>
+
+  <p class="hint">
+    La configuración se guarda en su usuario de Windows (sin variables de entorno).<br />
+    Ruta típica: <code>%APPDATA%\\MaxyPrintBridge\\config.json</code><br /><br />
+    Si elige «Predeterminada de Windows», se usa la impresora marcada como predeterminada en
+    Configuración → Bluetooth y dispositivos → Impresoras.
+  </p>
+
+  <script>
+    const sel = document.getElementById('printer');
+    const ok = document.getElementById('ok');
+    const err = document.getElementById('err');
+
+    async function load() {
+      const [cfgRes, listRes] = await Promise.all([
+        fetch('/api/config'),
+        fetch('/api/printers'),
+      ]);
+      const cfg = await cfgRes.json();
+      const list = await listRes.json();
+      sel.innerHTML = '';
+      const optDef = document.createElement('option');
+      optDef.value = '';
+      optDef.textContent = 'Predeterminada de Windows';
+      sel.appendChild(optDef);
+      for (const p of list.printers || []) {
+        const o = document.createElement('option');
+        o.value = p.name;
+        o.textContent = p.isDefault ? p.name + ' (predeterminada)' : p.name;
+        sel.appendChild(o);
+      }
+      const want = cfg.printerName || '';
+      sel.value = want;
+      const match = Array.from(sel.options).some((o) => o.value === want);
+      if (!match && want) {
+        const o = document.createElement('option');
+        o.value = want;
+        o.textContent = want + ' (no listada; guardada antes)';
+        sel.appendChild(o);
+        sel.value = want;
+      }
+    }
+
+    document.getElementById('save').onclick = async () => {
+      ok.style.display = 'none';
+      err.style.display = 'none';
+      try {
+        const r = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ printerName: sel.value || '' }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || 'Error al guardar');
+        ok.style.display = 'block';
+      } catch (e) {
+        err.textContent = e.message || String(e);
+        err.style.display = 'block';
+      }
+    };
+
+    load().catch((e) => {
+      err.textContent = 'No se pudo cargar: ' + (e.message || e);
+      err.style.display = 'block';
+    });
+  </script>
+</body>
+</html>`;
+
+export function startSettingsServer(port: number, host: string): http.Server {
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url || '/', `http://${host}`);
+
+    if (req.method === 'GET' && url.pathname === '/') {
+      html(res, 200, SETTINGS_PAGE);
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/config') {
+      json(res, 200, readUserConfig());
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/printers') {
+      const printers = listWindowsPrinters();
+      json(res, 200, { printers });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/config') {
+      try {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw || '{}') as { printerName?: string };
+        const printerName =
+          typeof body.printerName === 'string' && body.printerName.trim() !== ''
+            ? body.printerName.trim()
+            : null;
+        writeUserConfig({ printerName });
+        json(res, 200, { ok: true });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        json(res, 400, { ok: false, error: msg });
+      }
+      return;
+    }
+
+    res.writeHead(404);
+    res.end();
+  });
+
+  server.listen(port, host, () => {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[maxy-print-bridge] Configuración en http://${host}:${port} (elija la impresora aquí)`,
+    );
+  });
+
+  return server;
+}

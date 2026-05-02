@@ -1,0 +1,61 @@
+# Compila el bridge con pkg en Windows y adjunta el .exe al GitHub Release.
+# Vive en el repo del bridge (raíz del proyecto = carpeta print-bridge).
+#
+# Uso:
+# 1) Release con tag print-bridge-* (ej. print-bridge-1.0.0) → sube maxy-print-bridge-win.exe al release.
+# 2) workflow_dispatch → artifact descargable (sin release).
+#
+# URL típica para VITE_PRINT_BRIDGE_DOWNLOAD_URL:
+# https://github.com/OWNER/REPO-PRINT-BRIDGE/releases/download/print-bridge-1.0.0/maxy-print-bridge-win.exe
+
+name: Print bridge (Windows .exe)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-attach:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'print-bridge-'))
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies and package exe
+        run: |
+          npm ci
+          npm run pkg:win
+
+      - name: Verify artifact
+        shell: pwsh
+        run: |
+          $p = "release/maxy-print-bridge-win.exe"
+          if (-not (Test-Path $p)) { throw "Missing $p" }
+          Get-Item $p | Select-Object Name, Length, LastWriteTime
+
+      - name: Upload asset to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/maxy-print-bridge-win.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload workflow artifact (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: maxy-print-bridge-win
+          path: release/maxy-print-bridge-win.exe

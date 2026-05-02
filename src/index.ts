@@ -1,31 +1,30 @@
-import { execSync } from 'child_process';
 import { WebSocketServer } from 'ws';
 import PQueue from 'p-queue';
-import type { PrintJobMessage, ThermalPrintPayload } from './types';
+import type { PrintJobMessage } from './types';
 import { printThermalPayload } from './format-ticket';
+import { readUserConfig } from './config-store';
+import { getWindowsDefaultPrinterName } from './windows-printers';
+import { startSettingsServer } from './settings-server';
 
-const PORT = Number(process.env.PRINT_BRIDGE_PORT || 8080);
-const HOST = process.env.PRINT_BRIDGE_HOST || '127.0.0.1';
-
-function getWindowsDefaultPrinterName(): string | null {
-  if (process.platform !== 'win32') return null;
-  try {
-    const cmd =
-      'powershell -NoProfile -Command "(Get-CimInstance Win32_Printer | Where-Object { $_.Default -eq $true }).Name"';
-    const name = execSync(cmd, { encoding: 'utf8' }).trim();
-    return name || null;
-  } catch {
-    return null;
-  }
-}
+/** Puerto WebSocket: panel → bridge (fijo; no requiere configuración en la PC del cliente). */
+const WS_PORT = 8080;
+/** Página web local para elegir impresora. */
+const UI_PORT = 8081;
+const HOST = '127.0.0.1';
 
 function resolvePrinterName(): string {
-  const fromEnv = process.env.PRINT_BRIDGE_PRINTER_NAME?.trim();
-  if (fromEnv) return fromEnv;
+  const cfg = readUserConfig();
+  if (cfg.printerName) {
+    return cfg.printerName;
+  }
   const def = getWindowsDefaultPrinterName();
-  if (def) return def;
+  if (def) {
+    return def;
+  }
   throw new Error(
-    'Defina PRINT_BRIDGE_PRINTER_NAME o establezca una impresora predeterminada en Windows',
+    'No hay impresora predeterminada en Windows. Abra http://127.0.0.1:' +
+      UI_PORT +
+      ' y elija una impresora, o defina una predeterminada en Configuración de Windows.',
   );
 }
 
@@ -43,12 +42,14 @@ function parseMessage(text: string): PrintJobMessage | null {
 }
 
 async function main() {
+  startSettingsServer(UI_PORT, HOST);
+
   const queue = new PQueue({ concurrency: 1 });
-  const wss = new WebSocketServer({ host: HOST, port: PORT });
+  const wss = new WebSocketServer({ host: HOST, port: WS_PORT });
 
   // eslint-disable-next-line no-console
   console.log(
-    `[maxy-print-bridge] escuchando en ws://${HOST}:${PORT} (cola serializada)`,
+    `[maxy-print-bridge] Impresión: ws://${HOST}:${WS_PORT} (el panel envía los trabajos aquí)`,
   );
 
   wss.on('connection', (socket) => {
@@ -76,7 +77,8 @@ async function main() {
         socket.send(
           JSON.stringify({
             ok: false,
-            error: 'Mensaje inválido; espere { type: "print", version: 1, thermalPrint }',
+            error:
+              'Mensaje inválido; espere { type: "print", version: 1, thermalPrint }',
           }),
         );
         return;
