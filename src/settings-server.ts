@@ -58,7 +58,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
   <div>
     <button type="button" id="save">Guardar</button>
   </div>
-  <div class="ok" id="ok">Guardado. Ya puede cerrar esta ventana.</div>
+  <div class="ok" id="ok">Guardado correctamente. Puede cerrar esta ventana y usar el panel en Operaciones para imprimir pedidos.</div>
   <div class="err" id="err"></div>
 
   <p class="hint">

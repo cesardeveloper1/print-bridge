@@ -5,13 +5,21 @@ import {
   ThermalPrinter,
 } from 'node-thermal-printer';
 import type { ThermalPrintPayload } from './types';
+import { fileLog } from './file-logger';
+
+const RETRY_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 1500;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function money(n: number | undefined): string {
   if (n === undefined || Number.isNaN(n)) return '—';
   return n.toFixed(2);
 }
 
-export async function printThermalPayload(
+async function executePrint(
   payload: ThermalPrintPayload,
   printerName: string,
 ): Promise<void> {
@@ -119,4 +127,29 @@ export async function printThermalPayload(
 
   printer.cut();
   await printer.execute();
+}
+
+export async function printThermalPayload(
+  payload: ThermalPrintPayload,
+  printerName: string,
+): Promise<void> {
+  let lastError: Error | undefined;
+  for (let attempt = 1; attempt <= 1 + RETRY_ATTEMPTS; attempt++) {
+    try {
+      await executePrint(payload, printerName);
+      fileLog.info(
+        `impreso order=${payload.orderId} printer=${printerName} attempt=${attempt}`,
+      );
+      return;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      fileLog.warn(
+        `fallo impresión attempt=${attempt}/${1 + RETRY_ATTEMPTS} order=${payload.orderId} printer=${printerName}: ${lastError.message}`,
+      );
+      if (attempt < 1 + RETRY_ATTEMPTS) {
+        await sleep(RETRY_DELAY_MS);
+      }
+    }
+  }
+  throw lastError;
 }

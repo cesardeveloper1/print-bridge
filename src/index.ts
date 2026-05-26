@@ -5,6 +5,7 @@ import { printThermalPayload } from './format-ticket';
 import { readUserConfig } from './config-store';
 import { getWindowsDefaultPrinterName } from './windows-printers';
 import { startSettingsServer } from './settings-server';
+import { fileLog } from './file-logger';
 
 /** Puerto WebSocket: panel → bridge (fijo; no requiere configuración en la PC del cliente). */
 const WS_PORT = 8080;
@@ -42,6 +43,7 @@ function parseMessage(text: string): PrintJobMessage | null {
 }
 
 async function main() {
+  fileLog.info(`iniciando maxy-print-bridge ws=${HOST}:${WS_PORT} ui=${HOST}:${UI_PORT}`);
   startSettingsServer(UI_PORT, HOST);
 
   const queue = new PQueue({ concurrency: 1 });
@@ -93,6 +95,9 @@ async function main() {
           socket.send(JSON.stringify({ ok: true }));
         })
         .catch((err: Error) => {
+          fileLog.error(
+            `error imprimiendo order=${msg.thermalPrint.orderId}: ${err?.message || String(err)}`,
+          );
           socket.send(
             JSON.stringify({
               ok: false,
@@ -107,5 +112,6 @@ async function main() {
 main().catch((e) => {
   // eslint-disable-next-line no-console
   console.error('[maxy-print-bridge]', e);
+  fileLog.error(`fatal: ${(e as Error)?.message || String(e)}`);
   process.exit(1);
 });
