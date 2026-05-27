@@ -8,10 +8,16 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "npx ts-node --transpile-only src/index.ts",
-    "pkg:win": "npm run build && pkg dist/index.js --targets node18-win-x64 --output release/maxy-print-bridge-win.exe"
+    "pkg:win": "npm run build && pkg dist/index.js --targets node18-win-x64 --output release/maxy-print-bridge-win.exe",
+    "pkg:mac-x64": "npm run build && pkg dist/index.js --targets node18-macos-x64 --output release/maxy-print-bridge-mac-x64",
+    "pkg:mac-arm64": "npm run build && pkg dist/index.js --targets node18-macos-arm64 --output release/maxy-print-bridge-mac-arm64",
+    "pkg:linux-x64": "npm run build && pkg dist/index.js --targets node18-linux-x64 --output release/maxy-print-bridge-linux-x64"
   },
   "pkg": {
-    "scripts": "dist/**/*.js"
+    "scripts": "dist/**/*.js",
+    "assets": [
+      "scripts/send-raw-print.ps1"
+    ]
   },
   "dependencies": {
     "node-thermal-printer": "^4.4.3",

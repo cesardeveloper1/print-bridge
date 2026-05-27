@@ -8,10 +8,60 @@ Flujo: **NestJS (Railway)** emite por Socket.io un evento `order_status_changed`
 
 ## 1. PC del cliente (restaurante)
 
-**No usa variables de entorno.** Solo:
+**No usa variables de entorno.**
+
+### Windows
 
 1. Ejecutar **`maxy-print-bridge-win.exe`**.
 2. Abrir **`http://127.0.0.1:8081`** → elegir impresora → **Guardar**.
+
+### macOS
+
+1. Descargar el binario correspondiente desde GitHub Releases:
+   - **Intel (x64):** `maxy-print-bridge-mac-x64`
+   - **Apple Silicon (arm64):** `maxy-print-bridge-mac-arm64`
+   
+   Si no sabes cuál tienes: menú Apple → Acerca de esta Mac → Procesador. Si dice "Intel" usa x64; si dice "M1", "M2", etc. usa arm64.
+
+2. Quitar la cuarentena de Gatekeeper y ejecutar:
+   ```bash
+   xattr -d com.apple.quarantine ./maxy-print-bridge-mac-arm64   # o mac-x64
+   chmod +x ./maxy-print-bridge-mac-arm64
+   ./maxy-print-bridge-mac-arm64
+   ```
+   
+   Alternativa sin terminal: **click derecho → Abrir** en Finder la primera vez.
+
+3. Abrir **`http://127.0.0.1:8081`** → elegir impresora → **Guardar**.
+
+Si la impresora no aparece, verificar CUPS:
+```bash
+lpstat -a   # lista impresoras CUPS
+lpstat -d   # impresora por defecto
+```
+
+### Linux (Ubuntu / Debian)
+
+Requisito previo: CUPS instalado.
+
+```bash
+sudo apt-get update && sudo apt-get install -y cups
+sudo systemctl enable cups && sudo systemctl start cups
+```
+
+1. Descargar **`maxy-print-bridge-linux-x64`** desde GitHub Releases.
+2. Dar permiso de ejecución y lanzar:
+   ```bash
+   chmod +x ./maxy-print-bridge-linux-x64
+   ./maxy-print-bridge-linux-x64
+   ```
+3. Abrir **`http://127.0.0.1:8081`** → elegir impresora → **Guardar**.
+
+Si la impresora no aparece en la lista, verificar que CUPS la detecta:
+```bash
+lpstat -a   # lista impresoras CUPS
+lpstat -d   # impresora por defecto
+```
 
 | Qué | Dónde se guarda / origen |
 |-----|---------------------------|
@@ -78,7 +128,10 @@ Las variables deben existir en el momento del **`npm run build`** (archivo **`.e
 | `VITE_BILLING_API_URL` | No | Default en código. | API de facturación / billing. |
 | `VITE_GOOGLE_MAPS_API_KEY` | No | Vacío si no hay mapas. | Mapa de órdenes (clave restringida por dominio en Google Cloud). |
 | `VITE_PRINT_BRIDGE_WS_URL` | No | Default **`ws://127.0.0.1:8080`**. | El navegador del cajero habla con el bridge **en esa misma PC**. Solo cámbiala si recompilas el bridge con otro puerto. |
-| `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | No* | URL **HTTPS** directa al `.exe` (p. ej. asset de un GitHub Release). | Botón en **Configuración → Proveedores**. |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | No* | URL **HTTPS** directa al `.exe` de Windows. | Botón Windows en **Configuración → Impresión**. |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL_MAC_X64` | No* | URL **HTTPS** al binario macOS Intel. | Botón Mac Intel en **Configuración → Impresión**. |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL_MAC_ARM` | No* | URL **HTTPS** al binario macOS Apple Silicon. | Botón Mac ARM en **Configuración → Impresión**. |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL_LINUX` | No* | URL **HTTPS** al binario Linux x64. | Botón Linux en **Configuración → Impresión**. |
 
 \* Si está vacía, el panel puede mostrar un aviso; el resto del panel sigue funcionando.
 

@@ -2,32 +2,16 @@ import { WebSocketServer } from 'ws';
 import PQueue from 'p-queue';
 import type { PrintJobMessage } from './types';
 import { printThermalPayload } from './format-ticket';
-import { readUserConfig } from './config-store';
-import { getWindowsDefaultPrinterName } from './windows-printers';
 import { startSettingsServer } from './settings-server';
 import { fileLog } from './file-logger';
+import { resolvePrinterForPrint } from './resolve-printer';
+import { toUserFacingPrintError } from './print-errors';
 
 /** Puerto WebSocket: panel → bridge (fijo; no requiere configuración en la PC del cliente). */
 const WS_PORT = 8080;
 /** Página web local para elegir impresora. */
 const UI_PORT = 8081;
 const HOST = '127.0.0.1';
-
-function resolvePrinterName(): string {
-  const cfg = readUserConfig();
-  if (cfg.printerName) {
-    return cfg.printerName;
-  }
-  const def = getWindowsDefaultPrinterName();
-  if (def) {
-    return def;
-  }
-  throw new Error(
-    'No hay impresora predeterminada en Windows. Abra http://127.0.0.1:' +
-      UI_PORT +
-      ' y elija una impresora, o defina una predeterminada en Configuración de Windows.',
-  );
-}
 
 function parseMessage(text: string): PrintJobMessage | null {
   try {
@@ -88,20 +72,31 @@ async function main() {
 
       void queue
         .add(async () => {
-          const printerName = resolvePrinterName();
-          await printThermalPayload(msg.thermalPrint, printerName);
+          const resolved = resolvePrinterForPrint();
+          await printThermalPayload(msg.thermalPrint, resolved.printerName);
         })
         .then(() => {
           socket.send(JSON.stringify({ ok: true }));
         })
         .catch((err: Error) => {
+          let userMessage = err?.message || String(err);
+          try {
+            const resolved = resolvePrinterForPrint();
+            userMessage = toUserFacingPrintError(err, {
+              printerName: resolved.printerName,
+              printers: resolved.printers,
+              configPrinterName: resolved.configPrinterName,
+            });
+          } catch {
+            /* keep raw if resolve fails */
+          }
           fileLog.error(
-            `error imprimiendo order=${msg.thermalPrint.orderId}: ${err?.message || String(err)}`,
+            `error imprimiendo order=${msg.thermalPrint.orderId}: ${err?.message || String(err)} → ${userMessage}`,
           );
           socket.send(
             JSON.stringify({
               ok: false,
-              error: err?.message || String(err),
+              error: userMessage,
             }),
           );
         });

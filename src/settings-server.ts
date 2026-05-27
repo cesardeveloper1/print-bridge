@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { readUserConfig, writeUserConfig } from './config-store';
-import { listWindowsPrinters } from './windows-printers';
+import { listPrinters } from './printers';
 
 function json(res: http.ServerResponse, code: number, body: unknown) {
   res.writeHead(code, {
@@ -50,7 +50,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
 </head>
 <body>
   <h1>Impresora para tickets</h1>
-  <p class="sub">Elija la impresora térmica. No hace falta configurar nada más en Windows.</p>
+  <p class="sub">Elija la impresora térmica. No hace falta configurar nada más.</p>
 
   <label for="printer">Impresora</label>
   <select id="printer"></select>
@@ -62,10 +62,10 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
   <div class="err" id="err"></div>
 
   <p class="hint">
-    La configuración se guarda en su usuario de Windows (sin variables de entorno).<br />
-    Ruta típica: <code>%APPDATA%\\MaxyPrintBridge\\config.json</code><br /><br />
-    Si elige «Predeterminada de Windows», se usa la impresora marcada como predeterminada en
-    Configuración → Bluetooth y dispositivos → Impresoras.
+    La configuración se guarda localmente (sin variables de entorno).<br />
+    Windows: <code>%APPDATA%\\MaxyPrintBridge\\config.json</code><br />
+    macOS / Linux: <code>~/.maxy-print-bridge/config.json</code><br /><br />
+    Si elige «Predeterminada del sistema», se usa la impresora predeterminada del sistema operativo.
   </p>
 
   <script>
@@ -83,7 +83,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
       sel.innerHTML = '';
       const optDef = document.createElement('option');
       optDef.value = '';
-      optDef.textContent = 'Predeterminada de Windows';
+      optDef.textContent = 'Predeterminada del sistema';
       sel.appendChild(optDef);
       for (const p of list.printers || []) {
         const o = document.createElement('option');
@@ -144,7 +144,7 @@ export function startSettingsServer(port: number, host: string): http.Server {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/printers') {
-      const printers = listWindowsPrinters();
+      const printers = listPrinters();
       json(res, 200, { printers });
       return;
     }

@@ -9,6 +9,8 @@ export interface ThermalPrintLineItem {
 export interface ThermalPrintPayload {
   version: 1;
   triggerStatus: 'PREORDER' | 'ACEPTED';
+  /** full = ticket con totales; kitchen = solo ítems para cocina (impresión manual) */
+  ticketType?: 'full' | 'kitchen';
   orderId: string;
   orderNumber?: string;
   brandSubdomain: string;
