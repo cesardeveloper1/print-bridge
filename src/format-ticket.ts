@@ -7,7 +7,7 @@ import {
   PrinterTypes,
   ThermalPrinter,
 } from 'node-thermal-printer';
-import type { ThermalPrintPayload } from './types';
+import type { DividerStyle, ThermalPrintPayload } from './types';
 import { fileLog } from './file-logger';
 import { sendRawToWindowsPrinter } from './win-raw-print';
 
@@ -18,10 +18,78 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function money(n: number | undefined): string {
-  if (n === undefined || Number.isNaN(n)) return '—';
-  return n.toFixed(2);
+function printDivider(printer: ThermalPrinter, style: DividerStyle | undefined): void {
+  if (!style || style === 'none') return;
+  printer.drawLine();
 }
+
+function money(n: number | undefined, sym: string = 'S/'): string {
+  if (n === undefined || Number.isNaN(n)) return '—';
+  return `${sym} ${n.toFixed(2)}`;
+}
+
+function formatDate(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy}  ${hh}:${min}`;
+}
+
+// ─── Config resolver ─────────────────────────────────────────────────────────
+
+import type { TicketTypeConfig } from './types';
+
+function resolveConfig(payload: ThermalPrintPayload): TicketTypeConfig {
+  const isKitchen = payload.ticketType === 'kitchen';
+  const raw = isKitchen ? payload.ticketConfig?.kitchen : payload.ticketConfig?.full;
+  const def: TicketTypeConfig = isKitchen
+    ? {
+        showHeader: true, headerTitle: '', headerStyle: 'bold',
+        showOrderNumber: true, orderNumberOrder: -2,
+        showDeliveryMode: true, deliveryModeOrder: -1,
+        showOrderId: true, orderIdOrder: 0, orderIdStyle: 'bold',
+        customer: { order: 1, visible: true, style: 'normal', showPhone: false, showAddress: false },
+        items:    { order: 2, style: 'normal', showPrices: false },
+        totals:   { order: 3, visible: false, style: 'normal' },
+        payment:  { order: 4, visible: false, style: 'normal' },
+        notes:    { order: 5, visible: true, style: 'inverted' },
+        showFooter: true, footerLine1: '', footerLine2: '', footerStyle: 'normal',
+      }
+    : {
+        showHeader: true, headerTitle: '', headerStyle: 'bold',
+        showOrderNumber: true, orderNumberOrder: -2,
+        showDeliveryMode: true, deliveryModeOrder: -1,
+        showOrderId: true, orderIdOrder: 0, orderIdStyle: 'normal',
+        customer: { order: 1, visible: true, style: 'normal', showPhone: true, showAddress: true },
+        items:    { order: 2, style: 'normal', showPrices: true },
+        totals:   { order: 3, visible: true, style: 'bold' },
+        payment:  { order: 4, visible: true, style: 'normal' },
+        notes:    { order: 5, visible: true, style: 'normal' },
+        showFooter: true, footerLine1: '', footerLine2: '', footerStyle: 'normal',
+      };
+  if (!raw) return def;
+  return {
+    ...def, ...raw,
+    customer: { ...def.customer, ...(raw.customer || {}) },
+    items:    { ...def.items,    ...(raw.items    || {}) },
+    totals:   { ...def.totals,   ...(raw.totals   || {}) },
+    payment:  { ...def.payment,  ...(raw.payment  || {}) },
+    notes:    { ...def.notes,    ...(raw.notes    || {}) },
+  };
+}
+
+function resolveTicketTemplate(template: string, payload: ThermalPrintPayload): string {
+  return template
+    .replace(/\{nombre_local\}/g, payload.branchName || payload.brandSubdomain || '')
+    .replace(/\{pedido\}/g, payload.orderId || '');
+}
+
+// ─── ESC/POS buffer builder ───────────────────────────────────────────────────
 
 function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
   const spoolDir = path.join(os.tmpdir(), 'MaxyPrintBridge', 'build');
@@ -40,114 +108,211 @@ function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
   });
 
   const isKitchen = payload.ticketType === 'kitchen';
+  const sym = payload.currencySymbol || 'S/';
+  const cfg = resolveConfig(payload);
 
-  printer.alignCenter();
-  printer.bold(true);
-  printer.println(isKitchen ? 'MAXY — COCINA' : 'MAXY — TICKET');
-  printer.bold(false);
-  printer.drawLine();
-  printer.alignLeft();
+  // Derived show/hide flags
+  const showHeader  = cfg.showHeader  ?? true;
+  const showFooter  = cfg.showFooter  ?? true;
+  const showCustomer = cfg.customer.visible ?? true;
+  const showPhone   = showCustomer && cfg.customer.showPhone && !!payload.customerPhone;
+  const showRef     = cfg.showOrderId;
+  const showPrices  = cfg.items.showPrices;
+  const showTotals  = !isKitchen && cfg.totals.visible;
+  const showPayment = !isKitchen && cfg.payment.visible  && !!payload.paymentLabel;
+  const showNotes   = cfg.notes.visible;
+  const showAddress = !isKitchen && cfg.customer.showAddress && (!!payload.deliveryAddress || !!payload.deliveryAddressRef);
 
-  if (!isKitchen) {
-    const title =
-      payload.triggerStatus === 'PREORDER' ? 'PRE-ORDEN' : 'ORDEN ACEPTADA';
+  // ── ENCABEZADO: nombre del local ─────────────────────────────────────────
+  if (showHeader) {
+    const rawHeaderTitle = cfg.headerTitle?.trim()
+      ? resolveTicketTemplate(cfg.headerTitle, payload)
+      : (payload.branchName || payload.brandSubdomain || (isKitchen ? 'COCINA' : 'TICKET'));
+    printer.alignCenter();
     printer.bold(true);
-    printer.println(title);
+    printer.println(rawHeaderTitle.toUpperCase());
     printer.bold(false);
-  } else {
-    printer.bold(true);
-    printer.println('TICKET DE COCINA');
-    printer.bold(false);
+    printer.alignLeft();
   }
 
-  if (payload.orderNumber) {
-    printer.println(`Pedido: ${payload.orderNumber}`);
-  }
-  printer.println(`ID: ${payload.orderId}`);
-  if (payload.brandSubdomain) {
-    printer.println(`Marca: ${payload.brandSubdomain}`);
-  }
-  if (payload.branchName) {
-    printer.println(`Local: ${payload.branchName}`);
-  }
-  printer.println(`Estado: ${payload.statusLabel}`);
-  printer.drawLine();
+  // ── SECCIONES ORDENADAS (incluye número de orden y modalidad) ────────────
+  const dateStr = formatDate(payload.createdAt);
+  const shortNumber = payload.orderNumber
+    ? `#${payload.orderNumber.split('-').pop()}`
+    : `#${payload.orderId.slice(-4)}`;
+  const sections: { order: number; print: () => void }[] = [];
 
-  if (payload.customerName || payload.customerPhone) {
-    printer.bold(true);
-    printer.println('Cliente');
-    printer.bold(false);
-    if (payload.customerName) printer.println(payload.customerName);
-    if (payload.customerPhone) printer.println(payload.customerPhone);
+  // orderNumber
+  if (cfg.showOrderNumber ?? true) {
+    sections.push({
+      order: cfg.orderNumberOrder ?? -2,
+      print: () => {
+        printDivider(printer, cfg.dividers?.orderNumber ?? 'solid');
+        printer.alignCenter();
+        printer.setTextSize(1, 1);
+        printer.bold(true);
+        printer.println(shortNumber);
+        printer.bold(false);
+        printer.setTextSize(0, 0);
+        printer.alignLeft();
+      },
+    });
+  }
+
+  // deliveryMode
+  if ((cfg.showDeliveryMode ?? true) && payload.deliveryMode) {
+    sections.push({
+      order: cfg.deliveryModeOrder ?? -1,
+      print: () => {
+        printDivider(printer, cfg.dividers?.deliveryMode ?? 'solid');
+        printer.alignCenter();
+        printer.bold(true);
+        printer.println(payload.deliveryMode!.toUpperCase());
+        printer.bold(false);
+        printer.alignLeft();
+      },
+    });
+  }
+
+  // orderId
+  if (showRef) {
+    sections.push({
+      order: cfg.orderIdOrder ?? 0,
+      print: () => {
+        printDivider(printer, cfg.dividers?.orderId ?? 'solid');
+        printer.alignCenter();
+        printer.println(`Ref: ${payload.orderId}`);
+        printer.alignLeft();
+      },
+    });
+  }
+
+  // customer
+  if (showCustomer || showPhone) {
+    sections.push({
+      order: cfg.customer?.order ?? 1,
+      print: () => {
+        printDivider(printer, cfg.dividers?.customer ?? 'solid');
+        printer.alignCenter();
+        if (showCustomer && payload.customerName) {
+          printer.bold(true);
+          printer.println(payload.customerName);
+          printer.bold(false);
+        }
+        if (showCustomer && dateStr) printer.println(dateStr);
+        if (showPhone) printer.println(`Tel: ${payload.customerPhone}`);
+        printer.alignLeft();
+      },
+    });
+  }
+
+  // items
+  sections.push({
+    order: cfg.items?.order ?? 2,
+    print: () => {
+      printDivider(printer, cfg.dividers?.items ?? 'solid');
+      if (showPrices) {
+        printer.tableCustom([
+          { text: 'Cant.', align: 'LEFT', width: 0.15 },
+          { text: 'Producto', align: 'LEFT', width: 0.55 },
+          { text: 'Precio', align: 'RIGHT', width: 0.30 },
+        ]);
+      } else {
+        printer.tableCustom([
+          { text: 'Cant.', align: 'LEFT', width: 0.20 },
+          { text: 'Producto', align: 'LEFT', width: 0.80 },
+        ]);
+      }
+      printer.drawLine();
+      for (const item of payload.items || []) {
+        const lineTotal = item.lineTotal ?? (item.unitPrice !== undefined ? item.quantity * item.unitPrice : undefined);
+        if (showPrices) {
+          printer.tableCustom([
+            { text: String(item.quantity), align: 'LEFT', width: 0.15 },
+            { text: item.name, align: 'LEFT', width: 0.55 },
+            { text: lineTotal !== undefined ? lineTotal.toFixed(2) : '', align: 'RIGHT', width: 0.30 },
+          ]);
+        } else {
+          printer.tableCustom([
+            { text: String(item.quantity), align: 'LEFT', width: 0.20 },
+            { text: item.name, align: 'LEFT', width: 0.80 },
+          ]);
+        }
+        for (const mod of item.modifiers || []) printer.println(`  + ${mod}`);
+        if (item.notes) printer.println(`  ★ ${item.notes}`);
+      }
+    },
+  });
+
+  // notes
+  if (showNotes && payload.specialNotes) {
+    sections.push({
+      order: cfg.notes?.order ?? 5,
+      print: () => {
+        printDivider(printer, cfg.dividers?.notes ?? 'solid');
+        printer.bold(true);
+        printer.println('★ Notas del pedido:');
+        printer.bold(false);
+        printer.println(payload.specialNotes!);
+      },
+    });
+  }
+
+  // totals
+  if (showTotals) {
+    sections.push({
+      order: cfg.totals?.order ?? 3,
+      print: () => {
+        printDivider(printer, cfg.dividers?.totals ?? 'solid');
+        if (payload.productsSubtotal !== undefined) printer.leftRight('Subtotal', money(payload.productsSubtotal, sym));
+        if (payload.deliveryCost !== undefined && payload.deliveryCost > 0) printer.leftRight('Delivery', money(payload.deliveryCost, sym));
+        if (payload.discountAmount !== undefined && payload.discountAmount > 0) printer.leftRight('Descuento', `-${money(payload.discountAmount, sym)}`);
+        if (payload.total !== undefined) {
+          printer.bold(true);
+          printer.leftRight('TOTAL', money(payload.total, sym));
+          printer.bold(false);
+        }
+        if (showPayment) printer.println(`Pago: ${payload.paymentLabel}`);
+      },
+    });
+  }
+
+  sections.sort((a, b) => a.order - b.order).forEach((s) => s.print());
+
+  // ── RESUMEN (siempre al final del cuerpo) ─────────────────────────────────
+  if (payload.summary) {
     printer.drawLine();
+    printer.bold(true);
+    printer.println('Resumen:');
+    printer.bold(false);
+    printer.println(payload.summary);
   }
 
-  if (payload.deliveryMode) {
-    printer.println(`Modalidad: ${payload.deliveryMode}`);
-  }
-  if (!isKitchen) {
-    if (payload.deliveryAddress) {
-      printer.println(`Dir: ${payload.deliveryAddress}`);
-    }
+  // ── DIRECCIÓN ─────────────────────────────────────────────────────────────
+  if (showAddress) {
+    printDivider(printer, cfg.dividers?.address ?? 'solid');
+    printer.bold(true);
+    printer.println('Direccion:');
+    printer.bold(false);
+    if (payload.deliveryAddress) printer.println(payload.deliveryAddress);
     if (payload.deliveryAddressRef) {
-      printer.println(`Ref: ${payload.deliveryAddressRef}`);
+      printer.println('Referencia:');
+      printer.println(payload.deliveryAddressRef);
     }
-  }
-  if (
-    payload.deliveryMode ||
-    (!isKitchen &&
-      (payload.deliveryAddress || payload.deliveryAddressRef))
-  ) {
-    printer.drawLine();
   }
 
-  printer.bold(true);
-  printer.println('Items');
-  printer.bold(false);
-  for (const line of payload.items || []) {
-    const mods =
-      line.modifiers && line.modifiers.length
-        ? ` (${line.modifiers.join(', ')})`
-        : '';
-    if (isKitchen) {
-      printer.println(`${line.quantity}x ${line.name}${mods}`);
-    } else {
-      printer.println(
-        `${line.quantity}x ${line.name}${mods}  ${money(line.lineTotal ?? line.unitPrice)}`,
-      );
-    }
-  }
-  printer.drawLine();
-
-  if (!isKitchen) {
-    if (payload.productsSubtotal !== undefined) {
-      printer.println(`Subtotal prod.: ${money(payload.productsSubtotal)}`);
-    }
-    if (payload.deliveryCost !== undefined) {
-      printer.println(`Delivery: ${money(payload.deliveryCost)}`);
-    }
-    if (payload.discountAmount !== undefined && payload.discountAmount > 0) {
-      printer.println(`Descuento: -${money(payload.discountAmount)}`);
-    }
-    if (payload.total !== undefined) {
-      printer.bold(true);
-      printer.println(`TOTAL: ${money(payload.total)}`);
-      printer.bold(false);
-    }
-    if (payload.paymentLabel) {
-      printer.println(`Pago: ${payload.paymentLabel}`);
-    }
-  }
-  if (payload.specialNotes) {
-    printer.drawLine();
-    printer.println(`Notas: ${payload.specialNotes}`);
+  // ── PIE DE PÁGINA ─────────────────────────────────────────────────────────
+  if (showFooter && (cfg.footerLine1 || cfg.footerLine2)) {
+    printDivider(printer, cfg.dividers?.footer ?? 'solid');
+    if (cfg.footerLine1) printer.println(resolveTicketTemplate(cfg.footerLine1, payload));
+    if (cfg.footerLine2) printer.println(resolveTicketTemplate(cfg.footerLine2, payload));
   }
 
   printer.drawLine();
   printer.println(`Impreso: ${payload.printedAt}`);
   printer.println('');
-
   printer.cut();
+
   const buffer = printer.getBuffer();
   if (!buffer || buffer.length === 0) {
     throw new Error('No se pudo generar el ticket (buffer vacío).');
