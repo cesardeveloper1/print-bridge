@@ -1,11 +1,7 @@
 import * as readline from 'readline';
 import { spawnSync } from 'child_process';
+import { BRIDGE_DISPLAY_NAME, isPackagedBinary } from './process-branding';
 
-function isPackagedExe(): boolean {
-  return !!(process as NodeJS.Process & { pkg?: unknown }).pkg;
-}
-
-/** Pausa la consola en Windows antes de salir (doble clic en .exe). */
 function pauseWindowsConsole(): void {
   if (process.platform !== 'win32') return;
   try {
@@ -15,15 +11,28 @@ function pauseWindowsConsole(): void {
   }
 }
 
-/** En Windows (doble clic en .exe) evita que la consola desaparezca sin leer el error. */
+function pauseUnixConsole(): void {
+  if (process.platform === 'win32') return;
+  try {
+    spawnSync('sh', ['-c', 'read -r -p "Pulse Enter para cerrar... " _'], {
+      stdio: 'inherit',
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+function shouldPauseBeforeExit(): boolean {
+  return isPackagedBinary() || !process.stdin.isTTY;
+}
+
+/** Evita que la terminal desaparezca al salir (doble clic / sin TTY). */
 export function exitWithConsolePause(code: number, reason?: string): void {
   if (reason) {
     // eslint-disable-next-line no-console
-    console.error(`\n[maxy-print-bridge] ${reason}`);
+    console.error(`\n[${BRIDGE_DISPLAY_NAME}] ${reason}`);
   }
-  const needsPause =
-    process.platform === 'win32' && (isPackagedExe() || !process.stdin.isTTY);
-  if (!needsPause) {
+  if (!shouldPauseBeforeExit()) {
     process.exit(code);
     return;
   }
@@ -37,17 +46,25 @@ export function exitWithConsolePause(code: number, reason?: string): void {
       process.exit(code);
     });
   } catch {
-    pauseWindowsConsole();
+    if (process.platform === 'win32') {
+      pauseWindowsConsole();
+    } else {
+      pauseUnixConsole();
+    }
     process.exit(code);
   }
 }
 
-/** Mensaje al arrancar el .exe empaquetado (ventana debe quedar abierta). */
-export function logPackagedStartupBanner(host: string, uiPort: number, wsPort: number): void {
-  if (!isPackagedExe()) return;
+/** Mensaje al arrancar binario empaquetado (ventana debe quedar abierta). */
+export function logPackagedStartupBanner(
+  host: string,
+  uiPort: number,
+  wsPort: number,
+): void {
+  if (!isPackagedBinary()) return;
   // eslint-disable-next-line no-console
   console.log(
-    '\n[maxy-print-bridge] Deje esta ventana abierta mientras usa el panel.\n' +
+    `\n[${BRIDGE_DISPLAY_NAME}] Deje esta ventana abierta mientras usa el panel.\n` +
       `  Impresora: http://${host}:${uiPort}  |  WebSocket: ws://${host}:${wsPort}\n`,
   );
 }

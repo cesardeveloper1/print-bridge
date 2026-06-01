@@ -7,7 +7,10 @@ import { resolvePrinterForPrint } from './resolve-printer';
 import { toUserFacingPrintError } from './print-errors';
 import { isBridgeAlreadyRunning } from './bridge-probe';
 import { exitWithConsolePause, logPackagedStartupBanner } from './console-exit';
+import { applyProcessBranding } from './process-branding';
 import { SerialPrintQueue } from './print-queue';
+
+applyProcessBranding();
 
 process.on('uncaughtException', (err) => {
   fileLog.error(`uncaughtException: ${err.message}`);
@@ -32,7 +35,7 @@ async function handlePortInUse(
   if (already) {
     // eslint-disable-next-line no-console
     console.log(
-      '[maxy-print-bridge] El programa ya está en ejecución en esta PC.\n' +
+      '[maxy-print-bridge] El programa ya está en ejecución en este equipo.\n' +
         `  Configuración: http://${HOST}:${UI_PORT}\n` +
         '  No abra una segunda copia; use la ventana que ya está abierta.',
     );
@@ -42,7 +45,7 @@ async function handlePortInUse(
   const port = which === 'settings' ? UI_PORT : WS_PORT;
   exitWithConsolePause(
     1,
-    `El puerto ${port} está en uso por otro programa. Cierre esa aplicación o reinicie el PC.`,
+    `El puerto ${port} está en uso por otro programa. Cierre esa aplicación o reinicie el equipo.`,
   );
 }
 

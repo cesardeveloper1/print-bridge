@@ -235,12 +235,20 @@ Compilar y ejecutar:
 npm run build && npm start
 ```
 
-Generar `.exe` local:
+Generar binarios locales:
 
 ```bash
-npm run pkg:win
-# → release/maxy-print-bridge-win.exe
+npm run pkg:win          # → release/maxy-print-bridge-win.exe
+npm run pkg:mac-x64      # → release/maxy-print-bridge-mac-x64
+npm run pkg:mac-arm64    # → release/maxy-print-bridge-mac-arm64
+npm run pkg:linux-x64    # → release/maxy-print-bridge-linux-x64
 ```
+
+Antes de `pkg:win`, cierre el bridge si está abierto (evita que `pkg` no pueda sobrescribir el `.exe`).
+
+**Nombre en terminal:** el proceso usa `process.title = "Maxy Print Bridge"` (pestaña de Terminal, Activity Monitor, etc.). No se usa firma de código ni metadatos PE en el `.exe`. Para no agrupar bajo “Terminal” en Windows 11, use **Host de consola de Windows** como terminal predeterminada (Configuración → Para desarrolladores → Terminal).
+
+**Mac / Linux:** al salir con error o si ya hay otra instancia, la terminal pide **Enter** antes de cerrar (igual que Windows). Deje la ventana abierta mientras use el panel.
 
 Probar ping (con [wscat](https://www.npmjs.com/package/wscat)):
 
