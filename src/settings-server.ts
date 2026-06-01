@@ -170,6 +170,10 @@ export function startSettingsServer(port: number, host: string): http.Server {
     res.end();
   });
 
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    server.emit('maxy-settings-error', err);
+  });
+
   server.listen(port, host, () => {
     // eslint-disable-next-line no-console
     console.log(

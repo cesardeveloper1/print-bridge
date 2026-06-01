@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "node-thermal-printer": "^4.4.3",
-    "p-queue": "^8.0.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
