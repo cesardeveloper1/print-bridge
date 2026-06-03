@@ -10,10 +10,12 @@ import { exitWithConsolePause, logPackagedStartupBanner } from './console-exit';
 import { applyProcessBranding } from './process-branding';
 import { SerialPrintQueue } from './print-queue';
 import { BRIDGE_HOST, UI_PORT, WS_PORT } from './ports';
+import { warmupSendRawPrintScript } from './send-raw-print-script';
 
 const HOST = BRIDGE_HOST;
 
 applyProcessBranding();
+warmupSendRawPrintScript();
 
 process.on('uncaughtException', (err) => {
   fileLog.error(`uncaughtException: ${err.message}`);

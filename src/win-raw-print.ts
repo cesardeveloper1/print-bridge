@@ -3,22 +3,9 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
+import { ensureSendRawPrintScript } from './send-raw-print-script';
 
 const execFileAsync = promisify(execFile);
-
-function resolvePsScriptPath(): string {
-  const candidates = [
-    path.join(__dirname, '..', 'scripts', 'send-raw-print.ps1'),
-    path.join(process.cwd(), 'scripts', 'send-raw-print.ps1'),
-    path.join(path.dirname(process.execPath), 'scripts', 'send-raw-print.ps1'),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  throw new Error(
-    'No se encontró send-raw-print.ps1. Reinstale el programa de impresión.',
-  );
-}
 
 export async function sendRawToWindowsPrinter(
   printerName: string,
@@ -33,7 +20,7 @@ export async function sendRawToWindowsPrinter(
   const binPath = path.join(dir, `job-${Date.now()}.bin`);
   fs.writeFileSync(binPath, data);
 
-  const scriptPath = resolvePsScriptPath();
+  const scriptPath = ensureSendRawPrintScript();
 
   try {
     const { stdout, stderr } = await execFileAsync(
