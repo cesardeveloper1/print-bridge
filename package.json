@@ -14,10 +14,7 @@
     "pkg:linux-x64": "npm run build && pkg dist/index.js --targets node18-linux-x64 --output release/maxy-print-bridge-linux-x64"
   },
   "pkg": {
-    "scripts": "dist/**/*.js",
-    "assets": [
-      "scripts/send-raw-print.ps1"
-    ]
+    "scripts": "dist/**/*.js"
   },
   "dependencies": {
     "node-thermal-printer": "^4.4.3",
