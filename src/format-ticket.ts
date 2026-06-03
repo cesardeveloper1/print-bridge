@@ -9,6 +9,7 @@ import {
 } from 'node-thermal-printer';
 import type { DividerStyle, ThermalPrintPayload } from './types';
 import { fileLog } from './file-logger';
+import { sendRawToCupsPrinter } from './cups-raw-print';
 import { sendRawToWindowsPrinter } from './win-raw-print';
 
 const RETRY_ATTEMPTS = 2;
@@ -320,12 +321,24 @@ function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
   return buffer;
 }
 
+async function sendRawBuffer(printerName: string, buffer: Buffer): Promise<void> {
+  if (process.platform === 'win32') {
+    await sendRawToWindowsPrinter(printerName, buffer);
+    return;
+  }
+  if (process.platform === 'linux' || process.platform === 'darwin') {
+    await sendRawToCupsPrinter(printerName, buffer);
+    return;
+  }
+  throw new Error(`Plataforma no soportada para impresión: ${process.platform}`);
+}
+
 async function executePrint(
   payload: ThermalPrintPayload,
   printerName: string,
 ): Promise<void> {
   const buffer = buildEscPosBuffer(payload);
-  await sendRawToWindowsPrinter(printerName, buffer);
+  await sendRawBuffer(printerName, buffer);
 }
 
 export async function printThermalPayload(

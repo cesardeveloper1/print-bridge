@@ -63,9 +63,11 @@ lpstat -a   # lista impresoras CUPS
 lpstat -d   # impresora por defecto
 ```
 
+La impresión envía el ticket con **`lp -d NOMBRE -o raw`** (bytes ESC/POS). El nombre en la UI debe coincidir con el de `lpstat -a`.
+
 | Qué | Dónde se guarda / origen |
 |-----|---------------------------|
-| Impresora elegida | Archivo **`%APPDATA%\MaxyPrintBridge\config.json`** (escrito por la página del bridge). |
+| Impresora elegida | **`~/.maxy-print-bridge/config.json`** (Linux/macOS) o **`%APPDATA%\MaxyPrintBridge\config.json`** (Windows). |
 | Puerto WebSocket (panel → bridge) | **17880**, fijo en `src/ports.ts`. |
 | Puerto de la página de ajustes | **17881**, fijo en `src/ports.ts`. |
 

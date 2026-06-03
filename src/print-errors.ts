@@ -1,11 +1,18 @@
-import type { WindowsPrinterRow } from './windows-printers';
+import type { PrinterRow } from './printers';
 import { UI_URL } from './ports';
 
 export type PrintErrorContext = {
   printerName: string;
-  printers: WindowsPrinterRow[];
+  printers: PrinterRow[];
   configPrinterName: string | null;
 };
+
+function osLabel(): string {
+  if (process.platform === 'win32') return 'Windows';
+  if (process.platform === 'linux') return 'Linux';
+  if (process.platform === 'darwin') return 'macOS';
+  return 'el sistema';
+}
 
 /** Mensaje en español para el panel / operador */
 export function toUserFacingPrintError(
@@ -15,6 +22,7 @@ export function toUserFacingPrintError(
   const raw = err instanceof Error ? err.message : String(err);
   const lower = raw.toLowerCase();
   const name = ctx.printerName;
+  const sys = osLabel();
 
   const installed = ctx.printers.some(
     (p) => p.name.toLowerCase() === name.toLowerCase(),
@@ -30,34 +38,54 @@ export function toUserFacingPrintError(
     );
   }
 
+  if (lower.includes('no se encontró el comando lp')) {
+    return (
+      'CUPS no está instalado o lp no está en PATH. En Ubuntu/Debian: sudo apt install cups cups-client'
+    );
+  }
+
+  if (
+    lower.includes('unable to locate printer') ||
+    lower.includes('unknown destination') ||
+    lower.includes('does not exist')
+  ) {
+    return (
+      `La impresora "${name}" no existe en CUPS. Abra ${UI_URL} y elija la impresora correcta (lpstat -a).`
+    );
+  }
+
   if (
     lower.includes('no hay impresora predeterminada') ||
     lower.includes('no se encontró ninguna impresora')
   ) {
     return (
       `No hay impresora configurada. Abra ${UI_URL}, elija una impresora y guarde, ` +
-      'o defina una predeterminada en Windows.'
+      `o defina una predeterminada en ${sys}.`
     );
   }
 
   if (!installed && ctx.printers.length === 0) {
+    const cupsHint =
+      process.platform === 'linux'
+        ? ' Instale CUPS y verifique con lpstat -a.'
+        : '';
     return (
-      'Windows no reporta impresoras instaladas. Conecte la impresora térmica, instale su driver ' +
+      `${sys} no reporta impresoras instaladas. Conecte la impresora térmica${cupsHint} ` +
       `y vuelva a abrir ${UI_URL} para elegirla.`
     );
   }
 
   if (!installed) {
     return (
-      `La impresora "${name}" ya no está en Windows (fue eliminada o renombrada). ` +
+      `La impresora "${name}" ya no está en ${sys} (fue eliminada o renombrada). ` +
       `Abra ${UI_URL} y elija la impresora correcta.`
     );
   }
 
   if (row?.workOffline) {
     return (
-      `La impresora "${name}" está marcada como fuera de línea en Windows. ` +
-      'Verifique que esté encendida, conectada por USB o red, y que no esté en "Usar impresora sin conexión".'
+      `La impresora "${name}" está marcada como fuera de línea. ` +
+      'Verifique que esté encendida y conectada por USB o red.'
     );
   }
 
@@ -81,7 +109,7 @@ export function toUserFacingPrintError(
   if (lower.includes('raw-only') || lower.includes('could not be detected')) {
     return (
       `No se detecta una impresora térmica compatible con "${name}". ` +
-      'Use una impresora ESC/POS instalada en Windows, no solo "Microsoft Print to PDF".'
+      'Use una impresora ESC/POS instalada en el sistema, no solo "Print to PDF".'
     );
   }
 

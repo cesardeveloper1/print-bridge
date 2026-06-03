@@ -1,25 +1,47 @@
 import { execSync } from 'child_process';
 
-export type PrinterRow = { name: string; isDefault: boolean };
+export type PrinterRow = {
+  name: string;
+  isDefault: boolean;
+  /** Win32_Printer.PrinterStatus (7 = Offline); solo Windows */
+  printerStatus?: number;
+  workOffline?: boolean;
+};
 
 // ─── Windows ────────────────────────────────────────────────────────────────
 
 function listWindowsPrinters(): PrinterRow[] {
   try {
     const script =
-      'Get-CimInstance Win32_Printer | Select-Object Name, Default | ConvertTo-Json -Compress';
+      'Get-CimInstance Win32_Printer | Select-Object Name, Default, PrinterStatus, WorkOffline | ConvertTo-Json -Compress';
     const out = execSync(`powershell -NoProfile -Command "${script}"`, {
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024,
     }).trim();
     if (!out) return [];
     const parsed = JSON.parse(out) as
-      | { Name?: string; Default?: boolean }
-      | Array<{ Name?: string; Default?: boolean }>;
+      | {
+          Name?: string;
+          Default?: boolean;
+          PrinterStatus?: number;
+          WorkOffline?: boolean;
+        }
+      | Array<{
+          Name?: string;
+          Default?: boolean;
+          PrinterStatus?: number;
+          WorkOffline?: boolean;
+        }>;
     const rows = Array.isArray(parsed) ? parsed : [parsed];
     return rows
       .filter((x) => x && typeof x.Name === 'string' && x.Name.length > 0)
-      .map((x) => ({ name: String(x.Name), isDefault: !!x.Default }));
+      .map((x) => ({
+        name: String(x.Name),
+        isDefault: !!x.Default,
+        printerStatus:
+          typeof x.PrinterStatus === 'number' ? x.PrinterStatus : undefined,
+        workOffline: !!x.WorkOffline,
+      }));
   } catch {
     return [];
   }
