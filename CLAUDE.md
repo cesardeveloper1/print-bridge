@@ -26,14 +26,14 @@ Two servers start concurrently from `src/index.ts`:
 
 | Server | Port | Purpose |
 |--------|------|---------|
-| WebSocket (`ws`) | 8080 | Receives print jobs from the web panel |
-| HTTP (`http`) | 8081 | Local settings UI to pick the printer |
+| WebSocket (`ws`) | 17880 | Receives print jobs from the web panel |
+| HTTP (`http`) | 17881 | Local settings UI to pick the printer |
 
 Both bind to `127.0.0.1` only — no external exposure.
 
 ### Print flow
 
-1. The panel (browser) opens a WebSocket to `ws://127.0.0.1:8080`.
+1. The panel (browser) opens a WebSocket to `ws://127.0.0.1:17880`.
 2. It sends `{ type: "print", version: 1, thermalPrint: ThermalPrintPayload }`.
 3. `index.ts` validates and enqueues the job via `p-queue` (concurrency = 1).
 4. `format-ticket.ts` builds the ESC/POS ticket using `node-thermal-printer` (EPSON driver, `printer:<name>` interface) and calls `printer.execute()`.

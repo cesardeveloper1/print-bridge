@@ -1,4 +1,5 @@
 import type { WindowsPrinterRow } from './windows-printers';
+import { UI_URL } from './ports';
 
 export type PrintErrorContext = {
   printerName: string;
@@ -34,7 +35,7 @@ export function toUserFacingPrintError(
     lower.includes('no se encontró ninguna impresora')
   ) {
     return (
-      'No hay impresora configurada. Abra http://127.0.0.1:8081, elija una impresora y guarde, ' +
+      `No hay impresora configurada. Abra ${UI_URL}, elija una impresora y guarde, ` +
       'o defina una predeterminada en Windows.'
     );
   }
@@ -42,14 +43,14 @@ export function toUserFacingPrintError(
   if (!installed && ctx.printers.length === 0) {
     return (
       'Windows no reporta impresoras instaladas. Conecte la impresora térmica, instale su driver ' +
-      'y vuelva a abrir http://127.0.0.1:8081 para elegirla.'
+      `y vuelva a abrir ${UI_URL} para elegirla.`
     );
   }
 
   if (!installed) {
     return (
       `La impresora "${name}" ya no está en Windows (fue eliminada o renombrada). ` +
-      'Abra http://127.0.0.1:8081 y elija la impresora correcta.'
+      `Abra ${UI_URL} y elija la impresora correcta.`
     );
   }
 
@@ -73,7 +74,7 @@ export function toUserFacingPrintError(
   ) {
     return (
       `No se pudo enviar el ticket a "${name}". Compruebe que la impresora esté encendida, ` +
-      'conectada y seleccionada en http://127.0.0.1:8081.'
+      `conectada y seleccionada en ${UI_URL}.`
     );
   }
 

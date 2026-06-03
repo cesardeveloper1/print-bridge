@@ -9,6 +9,9 @@ import { isBridgeAlreadyRunning } from './bridge-probe';
 import { exitWithConsolePause, logPackagedStartupBanner } from './console-exit';
 import { applyProcessBranding } from './process-branding';
 import { SerialPrintQueue } from './print-queue';
+import { BRIDGE_HOST, UI_PORT, WS_PORT } from './ports';
+
+const HOST = BRIDGE_HOST;
 
 applyProcessBranding();
 
@@ -48,12 +51,6 @@ async function handlePortInUse(
     `El puerto ${port} está en uso por otro programa. Cierre esa aplicación o reinicie el equipo.`,
   );
 }
-
-/** Puerto WebSocket: panel → bridge (fijo; no requiere configuración en la PC del cliente). */
-const WS_PORT = 8080;
-/** Página web local para elegir impresora. */
-const UI_PORT = 8081;
-const HOST = '127.0.0.1';
 
 function parseMessage(text: string): PrintJobMessage | null {
   try {

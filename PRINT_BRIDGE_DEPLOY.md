@@ -1,6 +1,6 @@
 # Impresión térmica: despliegue (Railway + GoDaddy)
 
-Flujo: **NestJS (Railway)** emite por Socket.io un evento `order_status_changed` que puede incluir `thermalPrint`. **El panel (GoDaddy / build estático)** reenvía ese JSON al **bridge** en la PC del restaurante (`ws://127.0.0.1:8080`). El bridge imprime por ESC/POS sin diálogo del navegador.
+Flujo: **NestJS (Railway)** emite por Socket.io un evento `order_status_changed` que puede incluir `thermalPrint`. **El panel (GoDaddy / build estático)** reenvía ese JSON al **bridge** en la PC del restaurante (`ws://127.0.0.1:17880`). El bridge imprime por ESC/POS sin diálogo del navegador.
 
 > **Supuesto en producción:** las variables del backend en **Railway** y las **`VITE_*`** del panel ya están definidas y el sistema funciona. Este documento indica **qué necesita cada capa** (referencia para auditoría, nuevos entornos o incorporar a alguien al proyecto). La impresión térmica **no añade variables nuevas obligatorias** en Railway.
 
@@ -13,7 +13,7 @@ Flujo: **NestJS (Railway)** emite por Socket.io un evento `order_status_changed`
 ### Windows
 
 1. Ejecutar **`maxy-print-bridge-win.exe`**.
-2. Abrir **`http://127.0.0.1:8081`** → elegir impresora → **Guardar**.
+2. Abrir **`http://127.0.0.1:17881`** → elegir impresora → **Guardar**.
 
 ### macOS
 
@@ -32,7 +32,7 @@ Flujo: **NestJS (Railway)** emite por Socket.io un evento `order_status_changed`
    
    Alternativa sin terminal: **click derecho → Abrir** en Finder la primera vez.
 
-3. Abrir **`http://127.0.0.1:8081`** → elegir impresora → **Guardar**.
+3. Abrir **`http://127.0.0.1:17881`** → elegir impresora → **Guardar**.
 
 Si la impresora no aparece, verificar CUPS:
 ```bash
@@ -55,7 +55,7 @@ sudo systemctl enable cups && sudo systemctl start cups
    chmod +x ./maxy-print-bridge-linux-x64
    ./maxy-print-bridge-linux-x64
    ```
-3. Abrir **`http://127.0.0.1:8081`** → elegir impresora → **Guardar**.
+3. Abrir **`http://127.0.0.1:17881`** → elegir impresora → **Guardar**.
 
 Si la impresora no aparece en la lista, verificar que CUPS la detecta:
 ```bash
@@ -66,8 +66,8 @@ lpstat -d   # impresora por defecto
 | Qué | Dónde se guarda / origen |
 |-----|---------------------------|
 | Impresora elegida | Archivo **`%APPDATA%\MaxyPrintBridge\config.json`** (escrito por la página del bridge). |
-| Puerto WebSocket (panel → bridge) | **8080**, fijo en el código del bridge. |
-| Puerto de la página de ajustes | **8081**, fijo en el código del bridge. |
+| Puerto WebSocket (panel → bridge) | **17880**, fijo en `src/ports.ts`. |
+| Puerto de la página de ajustes | **17881**, fijo en `src/ports.ts`. |
 
 ---
 
@@ -127,7 +127,7 @@ Las variables deben existir en el momento del **`npm run build`** (archivo **`.e
 | `VITE_WHATSAPP_URL_WS` | No | Default en código (servicio Baileys u otro). | WebSocket / URL del proveedor WhatsApp según arquitectura. |
 | `VITE_BILLING_API_URL` | No | Default en código. | API de facturación / billing. |
 | `VITE_GOOGLE_MAPS_API_KEY` | No | Vacío si no hay mapas. | Mapa de órdenes (clave restringida por dominio en Google Cloud). |
-| `VITE_PRINT_BRIDGE_WS_URL` | No | Default **`ws://127.0.0.1:8080`**. | El navegador del cajero habla con el bridge **en esa misma PC**. Solo cámbiala si recompilas el bridge con otro puerto. |
+| `VITE_PRINT_BRIDGE_WS_URL` | No | Default **`ws://127.0.0.1:17880`**. | El navegador del cajero habla con el bridge **en esa misma PC**. Solo cámbiala si recompilas el bridge con otro puerto. |
 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | No* | URL **HTTPS** directa al `.exe` de Windows. | Botón Windows en **Configuración → Impresión**. |
 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL_MAC_X64` | No* | URL **HTTPS** al binario macOS Intel. | Botón Mac Intel en **Configuración → Impresión**. |
 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL_MAC_ARM` | No* | URL **HTTPS** al binario macOS Apple Silicon. | Botón Mac ARM en **Configuración → Impresión**. |

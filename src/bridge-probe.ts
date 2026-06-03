@@ -1,9 +1,10 @@
 import WebSocket from 'ws';
+import { BRIDGE_HOST, WS_PORT } from './ports';
 
 /** Comprueba si ya hay un bridge escuchando en el puerto WebSocket. */
 export function isBridgeAlreadyRunning(
-  host = '127.0.0.1',
-  port = 8080,
+  host = BRIDGE_HOST,
+  port = WS_PORT,
   timeoutMs = 2000,
 ): Promise<boolean> {
   return new Promise((resolve) => {

@@ -44,7 +44,7 @@ Guía **paso a paso** para que en producción aparezca el botón **Descargar pro
 | 1 | Release `print-bridge-X.Y.Z` con asset `.exe` publicado | ☐ |
 | 2 | URL del asset copiada (HTTPS directa al `.exe`) | ☐ |
 | 3 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL` en GitHub → environment **production** | ☐ |
-| 4 | `VITE_PRINT_BRIDGE_WS_URL` = `ws://127.0.0.1:8080` | ☐ |
+| 4 | `VITE_PRINT_BRIDGE_WS_URL` = `ws://127.0.0.1:17880` | ☐ |
 | 5 | Código del panel con **Impresión en caja** mergeado en `main` | ☐ |
 | 6 | Workflow Azure en verde tras push a `main` | ☐ |
 | 7 | Botón de descarga visible en el panel de producción | ☐ |
@@ -90,7 +90,7 @@ https://github.com/cesardeveloper1/print-bridge/releases/download/print-bridge-1
 | Variable | Valor |
 |----------|--------|
 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | URL del paso A.3 |
-| `VITE_PRINT_BRIDGE_WS_URL` | `ws://127.0.0.1:8080` |
+| `VITE_PRINT_BRIDGE_WS_URL` | `ws://127.0.0.1:17880` |
 
 Opcional: repetir en **develop** para staging.
 
@@ -137,7 +137,7 @@ Detalle: [`PRINT_BRIDGE_DEPLOY.md`](./PRINT_BRIDGE_DEPLOY.md).
 
 ### Parte D — Restaurante (después del deploy)
 
-Ver sección [Uso en la PC de caja](#uso-caja): descargar → abrir `.exe` → `http://127.0.0.1:8081` → **Prender impresión** en Operaciones.
+Ver sección [Uso en la PC de caja](#uso-caja): descargar → abrir `.exe` → `http://127.0.0.1:17881` → **Prender impresión** en Operaciones.
 
 ---
 
@@ -169,8 +169,8 @@ El programa imprime en la impresora térmica
 
 | Qué | Valor |
 |-----|--------|
-| Programa de impresión | `ws://127.0.0.1:8080` (automático) |
-| Elegir impresora | `http://127.0.0.1:8081` |
+| Programa de impresión | `ws://127.0.0.1:17880` (automático) |
+| Elegir impresora | `http://127.0.0.1:17881` |
 | Config guardada | `%APPDATA%\MaxyPrintBridge\config.json` |
 
 ---
@@ -196,7 +196,7 @@ Guárdalo en Escritorio o Documentos.
 ### Paso 3 — Elegir la impresora (primera vez)
 
 1. Misma PC, Chrome o Edge.
-2. Abrir **`http://127.0.0.1:8081`**
+2. Abrir **`http://127.0.0.1:17881`**
 3. Elegir impresora térmica → **Guardar**.
 
 La impresora debe estar instalada en Windows (USB o red) y encendida.
@@ -211,7 +211,7 @@ La impresora debe estar instalada en Windows (USB o red) y encendida.
 - [ ] ¿`.exe` abierto?
 - [ ] ¿Misma PC para panel y programa?
 - [ ] ¿**Prender impresión** activo?
-- [ ] ¿Impresora elegida en `:8081`?
+- [ ] ¿Impresora elegida en `:17881`?
 - [ ] ¿Impresora encendida y con papel?
 
 ---
@@ -253,11 +253,11 @@ Antes de `pkg:win`, cierre el bridge si está abierto (evita que `pkg` no pueda 
 Probar ping (con [wscat](https://www.npmjs.com/package/wscat)):
 
 ```bash
-wscat -c ws://127.0.0.1:8080
+wscat -c ws://127.0.0.1:17880
 # {"type":"ping"}  →  {"ok":true,"type":"pong"}
 ```
 
-Página de impresora: **`http://127.0.0.1:8081`**
+Página de impresora: **`http://127.0.0.1:17881`**
 
 ---
 
@@ -274,7 +274,7 @@ Build en **`windows-latest`**. No hace falta configurar secretos extra.
 
 ---
 
-## Protocolo WebSocket (puerto 8080)
+## Protocolo WebSocket (puerto 17880)
 
 - **Ping:** `{"type":"ping"}` → `{"ok":true,"type":"pong"}`
 - **Imprimir:** `{"type":"print","version":1,"thermalPrint":{...}}` → `{"ok":true}` o error
@@ -288,8 +288,8 @@ Cola interna: **un ticket a la vez**.
 ```
 print-bridge/
 ├── src/
-│   ├── index.ts           # WebSocket :8080
-│   ├── settings-server.ts # Página :8081
+│   ├── index.ts           # WebSocket :17880
+│   ├── settings-server.ts # Página :17881
 │   ├── config-store.ts
 │   ├── format-ticket.ts
 │   └── windows-printers.ts

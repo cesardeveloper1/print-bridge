@@ -4,8 +4,7 @@ import {
   listWindowsPrinters,
   type WindowsPrinterRow,
 } from './windows-printers';
-
-const UI_PORT = 8081;
+import { UI_URL } from './ports';
 
 export type ResolvedPrinter = {
   printerName: string;
@@ -29,9 +28,7 @@ export function resolvePrinterForPrint(): ResolvedPrinter {
       );
     }
     throw new Error(
-      'No hay impresora predeterminada en Windows. Abra http://127.0.0.1:' +
-        UI_PORT +
-        ' y elija una impresora, o defina una predeterminada en Configuración de Windows.',
+      `No hay impresora predeterminada en Windows. Abra ${UI_URL} y elija una impresora, o defina una predeterminada en Configuración de Windows.`,
     );
   }
 
