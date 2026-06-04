@@ -6,6 +6,9 @@ function json(res: http.ServerResponse, code: number, body: unknown) {
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
   });
   res.end(JSON.stringify(body));
 }
@@ -32,7 +35,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Maxy — Impresora térmica</title>
+  <title>Maxy — Configuración de impresora</title>
   <style>
     :root { font-family: system-ui, Segoe UI, sans-serif; color: #1e293b; }
     body { max-width: 520px; margin: 2rem auto; padding: 0 1rem; }
@@ -40,6 +43,11 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
     p.sub { color: #64748b; font-size: 0.9rem; margin-top: 0; }
     label { display: block; font-weight: 600; margin: 1.25rem 0 0.5rem; }
     select { width: 100%; padding: 0.6rem 0.75rem; font-size: 1rem; border-radius: 8px; border: 1px solid #cbd5e1; }
+    .radio-group { display: flex; gap: 1rem; margin-top: 0.25rem; }
+    .radio-group label { display: flex; align-items: center; gap: 0.4rem; font-weight: 400; margin: 0; cursor: pointer; }
+    .info-box { margin-top: 0.5rem; padding: 0.6rem 0.75rem; border-radius: 8px; font-size: 0.85rem; line-height: 1.45; }
+    .info-thermal { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .info-regular { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
     button { margin-top: 1.25rem; padding: 0.65rem 1.25rem; font-size: 0.95rem; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; background: #7c3aed; color: #fff; }
     button:hover { background: #6d28d9; }
     .ok { margin-top: 1rem; padding: 0.75rem; background: #ecfdf5; color: #047857; border-radius: 8px; display: none; }
@@ -49,11 +57,23 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <h1>Impresora para tickets</h1>
-  <p class="sub">Elija la impresora térmica. No hace falta configurar nada más.</p>
+  <h1>Configuración de impresora</h1>
+  <p class="sub">Elija la impresora y su tipo. No hace falta configurar nada más.</p>
 
   <label for="printer">Impresora</label>
   <select id="printer"></select>
+
+  <label>Tipo de impresora</label>
+  <div class="radio-group">
+    <label><input type="radio" name="printerType" value="thermal" checked /> Térmica (ESC/POS)</label>
+    <label><input type="radio" name="printerType" value="regular" /> Láser / Inkjet</label>
+  </div>
+  <div id="info-thermal" class="info-box info-thermal">
+    Impresora de tickets por calor. Recibe datos ESC/POS directamente. Ideal para Epson TM, Bixolon, Star, Xprinter, etc.
+  </div>
+  <div id="info-regular" class="info-box info-regular" style="display:none">
+    Impresora de oficina (láser, inkjet). El panel enviará el ticket como PDF y se imprimirá vía Microsoft Edge. Requiere Edge instalado (incluido en Windows 10/11).
+  </div>
 
   <div>
     <button type="button" id="save">Guardar</button>
@@ -72,6 +92,20 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
     const sel = document.getElementById('printer');
     const ok = document.getElementById('ok');
     const err = document.getElementById('err');
+    const infoThermal = document.getElementById('info-thermal');
+    const infoRegular = document.getElementById('info-regular');
+
+    function getSelectedType() {
+      return document.querySelector('input[name="printerType"]:checked').value;
+    }
+
+    document.querySelectorAll('input[name="printerType"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        const isThermal = getSelectedType() === 'thermal';
+        infoThermal.style.display = isThermal ? 'block' : 'none';
+        infoRegular.style.display = isThermal ? 'none' : 'block';
+      });
+    });
 
     async function load() {
       const [cfgRes, listRes] = await Promise.all([
@@ -101,6 +135,11 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
         sel.appendChild(o);
         sel.value = want;
       }
+      // Restore printer type
+      const savedType = cfg.printerType === 'regular' ? 'regular' : 'thermal';
+      document.querySelector('input[name="printerType"][value="' + savedType + '"]').checked = true;
+      infoThermal.style.display = savedType === 'thermal' ? 'block' : 'none';
+      infoRegular.style.display = savedType === 'regular' ? 'block' : 'none';
     }
 
     document.getElementById('save').onclick = async () => {
@@ -110,7 +149,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
         const r = await fetch('/api/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ printerName: sel.value || '' }),
+          body: JSON.stringify({ printerName: sel.value || '', printerType: getSelectedType() }),
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'Error al guardar');
@@ -133,6 +172,16 @@ export function startSettingsServer(port: number, host: string): http.Server {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${host}`);
 
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      res.end();
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname === '/') {
       html(res, 200, SETTINGS_PAGE);
       return;
@@ -152,12 +201,13 @@ export function startSettingsServer(port: number, host: string): http.Server {
     if (req.method === 'POST' && url.pathname === '/api/config') {
       try {
         const raw = await readBody(req);
-        const body = JSON.parse(raw || '{}') as { printerName?: string };
+        const body = JSON.parse(raw || '{}') as { printerName?: string; printerType?: string };
         const printerName =
           typeof body.printerName === 'string' && body.printerName.trim() !== ''
             ? body.printerName.trim()
             : null;
-        writeUserConfig({ printerName });
+        const printerType = body.printerType === 'regular' ? 'regular' : 'thermal';
+        writeUserConfig({ printerName, printerType });
         json(res, 200, { ok: true });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);

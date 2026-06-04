@@ -11,6 +11,8 @@ import type { DividerStyle, ThermalPrintPayload } from './types';
 import { fileLog } from './file-logger';
 import { sendRawToCupsPrinter } from './cups-raw-print';
 import { sendRawToWindowsPrinter } from './win-raw-print';
+import { sendPdfToPrinter } from './win-pdf-print';
+import { readUserConfig } from './config-store';
 
 const RETRY_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 1500;
@@ -337,6 +339,17 @@ async function executePrint(
   payload: ThermalPrintPayload,
   printerName: string,
 ): Promise<void> {
+  const cfg = readUserConfig();
+  if (cfg.printerType === 'regular') {
+    if (!payload.pdfBase64) {
+      throw new Error(
+        'Esta impresora está configurada como Láser/Inkjet y requiere PDF. ' +
+        'Actualice el panel web a la última versión para enviar PDF automáticamente.',
+      );
+    }
+    await sendPdfToPrinter(printerName, payload.pdfBase64);
+    return;
+  }
   const buffer = buildEscPosBuffer(payload);
   await sendRawBuffer(printerName, buffer);
 }

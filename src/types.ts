@@ -107,6 +107,8 @@ export interface ThermalPrintPayload {
   currencySymbol?: string;
   printedAt: string;
   ticketConfig?: BrandTicketConfig;
+  /** PDF del ticket en base64 — requerido cuando printerType = 'regular' en el bridge */
+  pdfBase64?: string;
 }
 
 export interface PrintJobMessage {

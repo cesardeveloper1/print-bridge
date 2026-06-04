@@ -1,7 +1,7 @@
 /**
- * Copia el binario pkg a maxy-print-bridge-win.exe (sin rcedit ni firma de código).
+ * Renombra el binario pkg a maxy-print-bridge-win.exe (sin rcedit ni firma de código).
  */
-import { copyFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
+import { existsSync, mkdirSync, renameSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -22,12 +22,6 @@ if (!existsSync(unsignedPath)) {
   process.exit(1);
 }
 
-copyFileSync(unsignedPath, finalPath);
-
-try {
-  unlinkSync(unsignedPath);
-} catch {
-  /* ignore */
-}
+renameSync(unsignedPath, finalPath);
 
 console.log(`Listo: ${finalPath}`);
