@@ -10,10 +10,21 @@ Flujo: **NestJS (Railway)** emite por Socket.io un evento `order_status_changed`
 
 **No usa variables de entorno.**
 
-### Windows
+### Windows (v1.3+)
 
-1. Ejecutar **`maxy-print-bridge-win.exe`**.
-2. Abrir **`http://127.0.0.1:17881`** → elegir impresora → **Guardar**.
+El programa corre en **segundo plano con icono en la bandeja del sistema** (↑ junto al reloj). No abre ventana de consola.
+
+Hay dos artefactos de distribución:
+
+| Artefacto | Uso recomendado |
+|-----------|-----------------|
+| `maxy-print-bridge-setup.exe` | Instalador NSIS — recomendado para restaurantes; crea acceso directo y entrada en "Agregar o quitar programas". |
+| `maxy-print-bridge-win.exe` | Portable — sin instalación; ejecutar directamente. |
+
+1. Descargar e instalar (o ejecutar el portable).
+2. Si SmartScreen avisa: **Más información → Ejecutar de todas formas**.
+3. Buscar el icono **Maxy Print Bridge** en la bandeja del sistema.
+4. Clic en el icono → abrir configuración → elegir impresora → **Guardar**.
 
 ### macOS
 
@@ -130,7 +141,8 @@ Las variables deben existir en el momento del **`npm run build`** (archivo **`.e
 | `VITE_BILLING_API_URL` | No | Default en código. | API de facturación / billing. |
 | `VITE_GOOGLE_MAPS_API_KEY` | No | Vacío si no hay mapas. | Mapa de órdenes (clave restringida por dominio en Google Cloud). |
 | `VITE_PRINT_BRIDGE_WS_URL` | No | Default **`ws://127.0.0.1:17880`**. | El navegador del cajero habla con el bridge **en esa misma PC**. Solo cámbiala si recompilas el bridge con otro puerto. |
-| `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | No* | URL **HTTPS** directa al `.exe` de Windows. | Botón Windows en **Configuración → Impresión**. |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | No* | URL **HTTPS** al `maxy-print-bridge-setup.exe` (instalador recomendado). | Botón primario Windows en **Configuración → Impresión**. |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL_PORTABLE` | No* | URL **HTTPS** al `maxy-print-bridge-win.exe` (portable). Si está vacía, no se muestra enlace secundario. | Enlace "Versión portable" en **Configuración → Impresión**. |
 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL_MAC_X64` | No* | URL **HTTPS** al binario macOS Intel. | Botón Mac Intel en **Configuración → Impresión**. |
 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL_MAC_ARM` | No* | URL **HTTPS** al binario macOS Apple Silicon. | Botón Mac ARM en **Configuración → Impresión**. |
 | `VITE_PRINT_BRIDGE_DOWNLOAD_URL_LINUX` | No* | URL **HTTPS** al binario Linux x64. | Botón Linux en **Configuración → Impresión**. |
@@ -149,7 +161,7 @@ Las variables deben existir en el momento del **`npm run build`** (archivo **`.e
 
 ---
 
-## 5. Publicar el `.exe` (GitHub Actions)
+## 5. Publicar los artefactos Windows (GitHub Actions)
 
 El workflow vive en el **repositorio Git del bridge**. Si trabajás en un monorepo local, esa carpeta suele ser `print-bridge/`; en GitHub el repo del bridge tiene esa carpeta como **raíz** del clon.
 
@@ -157,12 +169,20 @@ El workflow vive en el **repositorio Git del bridge**. Si trabajás en un monore
 
 | Paso | Detalle |
 |------|---------|
-| Repo | Remoto dedicado al bridge (en el clon, la raíz contiene `package.json`, `src/`, `.github/`, etc.). |
+| Repo | Remoto dedicado al bridge (raíz contiene `package.json`, `src/`, `electron/`, `assets/`, `.github/`, etc.). |
 | Workflow | **`.github/workflows/print-bridge-release.yml`** |
-| Release | Tag que empiece por **`print-bridge-`** (ej. `print-bridge-1.0.0`) y publicar el release. |
-| Asset generado | **`maxy-print-bridge-win.exe`** adjunto al release. |
-| URL para el panel | `https://github.com/TU_ORG/TU_REPO_PRINT_BRIDGE/releases/download/print-bridge-1.0.0/maxy-print-bridge-win.exe` → copiar a **`VITE_PRINT_BRIDGE_DOWNLOAD_URL`** en el **build** del panel. |
-| Prueba sin release | **Actions** → workflow **Print bridge (Windows .exe)** → **Run workflow** → descargar el artifact. |
+| Release | Tag que empiece por **`print-bridge-`** (ej. `print-bridge-1.3.0`) y publicar el release. |
+| Assets generados | **`maxy-print-bridge-setup.exe`** (instalador) y **`maxy-print-bridge-win.exe`** (portable) adjuntos al release. |
+| URLs para el panel | Instalador → **`VITE_PRINT_BRIDGE_DOWNLOAD_URL`**; portable → **`VITE_PRINT_BRIDGE_DOWNLOAD_URL_PORTABLE`**. Actualizar en GitHub Environment **production** del panel y redesplegar. |
+| Prueba sin release | **Actions** → **Run workflow** → artifact `maxy-print-bridge-win-electron`. |
+
+**Orden de despliegue:**
+```
+1. Merge + release print-bridge (setup + portable en GitHub Releases)
+2. Actualizar VITE_PRINT_BRIDGE_DOWNLOAD_URL y VITE_PRINT_BRIDGE_DOWNLOAD_URL_PORTABLE en GitHub Environment production del panel
+3. Merge panel PRP 083 + push main → Azure rebuild
+4. Verificar botón descarga + badge conectado en prod
+```
 
 ---
 

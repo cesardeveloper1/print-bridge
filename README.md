@@ -4,6 +4,8 @@ Programa **local para Windows** que imprime tickets térmicos desde el panel web
 
 El panel (en internet) avisa al programa (en la misma PC de caja) y este manda el ticket a la impresora.
 
+> **v1.3 — bandeja del sistema:** el programa ya no abre ventana de consola. Busque el icono **Maxy Print Bridge** en la bandeja del sistema (flecha ↑ junto al reloj). macOS y Linux siguen con binario de consola hasta v2.x.
+
 ---
 
 ## ¿Para quién es este documento?
@@ -56,24 +58,26 @@ Guía **paso a paso** para que en producción aparezca el botón **Descargar pro
 #### A.1 Subir el código a GitHub
 
 - Repo: **https://github.com/cesardeveloper1/print-bridge**
-- La rama **`main`** debe incluir `package.json`, `src/` y `.github/workflows/print-bridge-release.yml`.
+- La rama **`main`** debe incluir `package.json`, `src/`, `electron/`, `assets/` y `.github/workflows/print-bridge-release.yml`.
 
 #### A.2 Crear un Release
 
 1. **GitHub → print-bridge → Releases → Draft a new release**
-2. **Tag:** `print-bridge-1.0.0` (debe empezar por **`print-bridge-`**)  
+2. **Tag:** `print-bridge-1.3.0` (debe empezar por **`print-bridge-`**)
 3. **Publish release**
-4. **Actions → Print bridge (Windows .exe)** → esperar ✅
-5. En el Release debe aparecer **`maxy-print-bridge-win.exe`**
+4. **Actions → Print bridge** → esperar ✅
+5. En el Release deben aparecer **`maxy-print-bridge-setup.exe`** y **`maxy-print-bridge-win.exe`**
 
-**Prueba sin release:** Actions → Run workflow → artifact `maxy-print-bridge-win`. Solo para probar; el panel necesita un Release con URL pública.
+**Prueba sin release:** Actions → Run workflow → artifact `maxy-print-bridge-win-electron`. Solo para probar; el panel necesita un Release con URL pública.
 
-#### A.3 Copiar la URL del `.exe`
-
-Formato:
+#### A.3 Copiar las URLs
 
 ```
-https://github.com/cesardeveloper1/print-bridge/releases/download/print-bridge-1.0.0/maxy-print-bridge-win.exe
+# Instalador (recomendado — usar en VITE_PRINT_BRIDGE_DOWNLOAD_URL)
+https://github.com/cesardeveloper1/print-bridge/releases/download/print-bridge-1.3.0/maxy-print-bridge-setup.exe
+
+# Portable (sin instalación — usar en VITE_PRINT_BRIDGE_DOWNLOAD_URL_PORTABLE)
+https://github.com/cesardeveloper1/print-bridge/releases/download/print-bridge-1.3.0/maxy-print-bridge-win.exe
 ```
 
 (Cambia la versión por la de tu tag.)
@@ -89,7 +93,8 @@ https://github.com/cesardeveloper1/print-bridge/releases/download/print-bridge-1
 
 | Variable | Valor |
 |----------|--------|
-| `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | URL del paso A.3 |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL` | URL del setup.exe del paso A.3 |
+| `VITE_PRINT_BRIDGE_DOWNLOAD_URL_PORTABLE` | URL del portable win.exe del paso A.3 (opcional) |
 | `VITE_PRINT_BRIDGE_WS_URL` | `ws://127.0.0.1:17880` |
 
 Opcional: repetir en **develop** para staging.
@@ -183,35 +188,46 @@ El programa imprime en la impresora térmica
 
 Desde el panel (**Configuración de la Marca → Impresión en caja**) o desde [Releases de GitHub](https://github.com/cesardeveloper1/print-bridge/releases).
 
-Guárdalo en Escritorio o Documentos.
+Hay dos versiones para Windows:
+- **Instalador** (`maxy-print-bridge-setup.exe`) — recomendado; crea acceso directo y entrada en "Agregar o quitar programas".
+- **Portable** (`maxy-print-bridge-win.exe`) — sin instalación; ejecutar directamente desde Escritorio.
 
-### Paso 2 — Abrirlo y dejarlo abierto
+### Paso 2 — Instalar o ejecutar
 
-1. Doble clic en **`maxy-print-bridge-win.exe`**.
-2. Deja la ventana abierta mientras usas el panel.
-3. Si SmartScreen avisa: **Más información → Ejecutar de todas formas**.
+**Instalador:** ejecutar setup y seguir el asistente.  
+**Portable:** doble clic en el `.exe`.
 
-> Consejo: acceso directo en el escritorio o inicio automático con Windows.
+Si SmartScreen avisa: **Más información → Ejecutar de todas formas**.
 
-### Paso 3 — Elegir la impresora (primera vez)
+### Paso 3 — Buscar el icono en la bandeja del sistema
 
-1. Misma PC, Chrome o Edge.
-2. Abrir **`http://127.0.0.1:17881`**
-3. Elegir impresora térmica → **Guardar**.
+El programa **no abre ventana de consola** — corre en segundo plano.
+
+Busque el icono **Maxy Print Bridge** en la bandeja del sistema (flecha **↑** junto al reloj, abajo a la derecha). Si no aparece, actívelo desde el área de notificaciones.
+
+- **Clic izquierdo** en el icono → abre la configuración de impresora en el navegador.
+- **Clic derecho** → menú: configuración, ticket de prueba, logs, soporte, autoarranque, salir.
+
+> El programa debe permanecer activo en la bandeja mientras usa el panel. No use "Salir" del menú durante el turno.
+
+### Paso 4 — Elegir la impresora (primera vez)
+
+1. Clic en el icono de la bandeja (o abrir `http://127.0.0.1:17881`).
+2. Elegir impresora térmica → **Guardar**.
 
 La impresora debe estar instalada en Windows (USB o red) y encendida.
 
-### Paso 4 — Activar impresión en el panel
+### Paso 5 — Activar impresión en el panel
 
 1. **Operaciones** (misma PC).
 2. **Prender impresión** (activo, en morado).
 
 ### Si no imprime
 
-- [ ] ¿`.exe` abierto?
+- [ ] ¿Icono de **Maxy Print Bridge** visible en la bandeja del sistema (↑ junto al reloj)?
 - [ ] ¿Misma PC para panel y programa?
 - [ ] ¿**Prender impresión** activo?
-- [ ] ¿Impresora elegida en `:17881`?
+- [ ] ¿Impresora configurada? (clic en el icono de la bandeja)
 - [ ] ¿Impresora encendida y con papel?
 
 ---
@@ -235,16 +251,28 @@ Compilar y ejecutar:
 npm run build && npm start
 ```
 
-Generar binarios locales:
+Modo Electron (Windows — sin consola, con bandeja del sistema):
 
 ```bash
-npm run pkg:win          # → release/maxy-print-bridge-win.exe
+npm run icons            # genera iconos placeholder en assets/ (solo primera vez)
+npm run electron:dev     # compila + abre Electron en modo desarrollo
+```
+
+Generar binarios para distribución:
+
+```bash
+# Windows — Electron (v1.3+)
+npm run dist:win         # setup.exe + portable → release/
+npm run dist:win:setup   # solo setup NSIS
+npm run dist:win:portable # solo portable
+
+# macOS / Linux — pkg (legacy hasta v2.x)
 npm run pkg:mac-x64      # → release/maxy-print-bridge-mac-x64
 npm run pkg:mac-arm64    # → release/maxy-print-bridge-mac-arm64
 npm run pkg:linux-x64    # → release/maxy-print-bridge-linux-x64
 ```
 
-Antes de `pkg:win`, cierre el bridge si está abierto (evita que `pkg` no pueda sobrescribir el `.exe`).
+> **Windows y bandeja del sistema:** a partir de v1.3 el instalador y el portable son Electron (sin consola). `pkg:win` queda como script de emergencia bajo el nombre `pkg:win:legacy`.
 
 **Nombre en terminal:** el proceso usa `process.title = "Maxy Print Bridge"` (pestaña de Terminal, Activity Monitor, etc.). No se usa firma de código ni metadatos PE en el `.exe`. Para no agrupar bajo “Terminal” en Windows 11, use **Host de consola de Windows** como terminal predeterminada (Configuración → Para desarrolladores → Terminal).
 
@@ -265,12 +293,14 @@ Página de impresora: **`http://127.0.0.1:17881`**
 
 Workflow: [`.github/workflows/print-bridge-release.yml`](./.github/workflows/print-bridge-release.yml)
 
-| Evento | Resultado |
-|--------|-----------|
-| Release con tag `print-bridge-*` | Adjunta `maxy-print-bridge-win.exe` |
-| `workflow_dispatch` | Artifact para pruebas |
+| Plataforma | Build | Evento release → adjunta |
+|------------|-------|--------------------------|
+| Windows | `electron-builder` (Electron) | `maxy-print-bridge-setup.exe` + `maxy-print-bridge-win.exe` |
+| macOS Intel | `pkg` | `maxy-print-bridge-mac-x64` |
+| macOS ARM | `pkg` | `maxy-print-bridge-mac-arm64` |
+| Linux x64 | `pkg` | `maxy-print-bridge-linux-x64` |
 
-Build en **`windows-latest`**. No hace falta configurar secretos extra.
+`workflow_dispatch` → artifacts descargables sin publicar release. No hace falta configurar secretos extra.
 
 ---
 
@@ -306,7 +336,7 @@ print-bridge/
 No. Descargar, abrir, elegir impresora.
 
 **¿Mac o Linux?**  
-No. Solo **Windows**.
+Impresión térmica sí. Bandeja del sistema solo **Windows** en v1.3 (macOS/Linux siguen con terminal hasta v2.x).
 
 **¿El `.exe` lee `.env`?**  
 No. Las `VITE_*` van en el **build del panel**, no en la PC del local.

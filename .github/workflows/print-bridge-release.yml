@@ -1,12 +1,13 @@
-# Compila el bridge con pkg en Windows y adjunta el .exe al GitHub Release.
-# Vive en el repo del bridge (raíz del proyecto = carpeta print-bridge).
+# Windows: Electron (NSIS setup + portable) desde v1.3.
+# macOS / Linux: siguen con pkg hasta tray multiplataforma (v2.x).
 #
 # Uso:
-# 1) Release con tag print-bridge-* (ej. print-bridge-1.0.0) → sube maxy-print-bridge-win.exe al release.
-# 2) workflow_dispatch → artifact descargable (sin release).
+# 1) Release con tag print-bridge-* → sube setup.exe + portable al release.
+# 2) workflow_dispatch → artifacts descargables (sin release).
 #
-# URL típica para VITE_PRINT_BRIDGE_DOWNLOAD_URL:
-# https://github.com/OWNER/REPO-PRINT-BRIDGE/releases/download/print-bridge-1.0.0/maxy-print-bridge-win.exe
+# URLs para el panel:
+#   VITE_PRINT_BRIDGE_DOWNLOAD_URL  → setup.exe  (recomendado)
+#   VITE_PRINT_BRIDGE_DOWNLOAD_URL_PORTABLE → portable win.exe
 
 name: Print bridge — build & release (all platforms)
 
@@ -33,38 +34,46 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies and package exe
+      - name: Install dependencies and build Electron artifacts
         run: |
           npm ci
-          npm run pkg:win
+          npm run dist:win
 
-      - name: Verify artifact
+      - name: Verify artifacts
         shell: pwsh
         run: |
-          $p = "release/maxy-print-bridge-win.exe"
-          if (-not (Test-Path $p)) { throw "Missing $p" }
-          Get-Item $p | Select-Object Name, Length, LastWriteTime
+          @(
+            "release/maxy-print-bridge-setup.exe",
+            "release/maxy-print-bridge-win.exe"
+          ) | ForEach-Object {
+            if (-not (Test-Path $_)) { throw "Missing $_" }
+            Get-Item $_ | Select-Object Name, Length
+          }
 
-      - name: Upload asset to release
+      - name: Upload assets to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/maxy-print-bridge-win.exe
+          files: |
+            release/maxy-print-bridge-setup.exe
+            release/maxy-print-bridge-win.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload workflow artifact (manual runs)
+      - name: Upload workflow artifacts (manual runs)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: maxy-print-bridge-win
-          path: release/maxy-print-bridge-win.exe
+          name: maxy-print-bridge-win-electron
+          path: |
+            release/maxy-print-bridge-setup.exe
+            release/maxy-print-bridge-win.exe
 
   build-mac-x64:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'print-bridge-'))
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
 
@@ -74,14 +83,14 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies and package macOS Intel binary
+      - name: Install dependencies and build macOS Intel DMG
         run: |
           npm ci
-          npm run pkg:mac-x64
+          npm run dist:mac:x64
 
       - name: Verify artifact
         run: |
-          p="release/maxy-print-bridge-mac-x64"
+          p="release/maxy-print-bridge-mac-x64.dmg"
           [ -f "$p" ] || (echo "Missing $p" && exit 1)
           ls -lh "$p"
 
@@ -89,7 +98,7 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/maxy-print-bridge-mac-x64
+          files: release/maxy-print-bridge-mac-x64.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -98,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: maxy-print-bridge-mac-x64
-          path: release/maxy-print-bridge-mac-x64
+          path: release/maxy-print-bridge-mac-x64.dmg
 
   build-mac-arm64:
     if: >-
@@ -114,14 +123,14 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies and package macOS Apple Silicon binary
+      - name: Install dependencies and build macOS Apple Silicon DMG
         run: |
           npm ci
-          npm run pkg:mac-arm64
+          npm run dist:mac:arm64
 
       - name: Verify artifact
         run: |
-          p="release/maxy-print-bridge-mac-arm64"
+          p="release/maxy-print-bridge-mac-arm64.dmg"
           [ -f "$p" ] || (echo "Missing $p" && exit 1)
           ls -lh "$p"
 
@@ -129,7 +138,7 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/maxy-print-bridge-mac-arm64
+          files: release/maxy-print-bridge-mac-arm64.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -138,7 +147,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: maxy-print-bridge-mac-arm64
-          path: release/maxy-print-bridge-mac-arm64
+          path: release/maxy-print-bridge-mac-arm64.dmg
 
   build-linux-x64:
     if: >-
@@ -154,14 +163,19 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies and package Linux binary
+      - name: Install Linux dependencies for AppImage
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libnotify-dev libxss-dev libnss3-dev
+
+      - name: Install dependencies and build Linux AppImage
         run: |
           npm ci
-          npm run pkg:linux-x64
+          npm run dist:linux
 
       - name: Verify artifact
         run: |
-          p="release/maxy-print-bridge-linux-x64"
+          p="release/maxy-print-bridge-linux-x64.AppImage"
           [ -f "$p" ] || (echo "Missing $p" && exit 1)
           ls -lh "$p"
 
@@ -169,7 +183,7 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/maxy-print-bridge-linux-x64
+          files: release/maxy-print-bridge-linux-x64.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -178,4 +192,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: maxy-print-bridge-linux-x64
-          path: release/maxy-print-bridge-linux-x64
+          path: release/maxy-print-bridge-linux-x64.AppImage

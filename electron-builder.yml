@@ -1,0 +1,56 @@
+appId: com.maxy.print-bridge
+productName: Maxy Print Bridge
+copyright: Copyright © Maxy Food
+
+directories:
+  output: release
+  buildResources: assets
+
+files:
+  - dist/**/*
+  - assets/**/*
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: assets/icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Maxy Print Bridge
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  installerHeaderIcon: assets/icon.ico
+  runAfterFinish: true
+  artifactName: maxy-print-bridge-setup.${ext}
+
+portable:
+  artifactName: maxy-print-bridge-win.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  icon: assets/icon-512.png
+  category: public.app-category.utilities
+
+dmg:
+  artifactName: maxy-print-bridge-mac-${arch}.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: assets/icon-512.png
+  category: Utility
+
+appImage:
+  artifactName: maxy-print-bridge-linux-x64.${ext}

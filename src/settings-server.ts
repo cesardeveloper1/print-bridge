@@ -168,7 +168,11 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export function startSettingsServer(port: number, host: string): http.Server {
+export function startSettingsServer(
+  port: number,
+  host: string,
+  onConfigSaved?: () => void,
+): http.Server {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${host}`);
 
@@ -208,6 +212,7 @@ export function startSettingsServer(port: number, host: string): http.Server {
             : null;
         const printerType = body.printerType === 'regular' ? 'regular' : 'thermal';
         writeUserConfig({ printerName, printerType });
+        onConfigSaved?.();
         json(res, 200, { ok: true });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
