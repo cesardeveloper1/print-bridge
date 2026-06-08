@@ -26,11 +26,10 @@ app.setAppUserModelId('com.maxy.print-bridge');
 // Single instance lock
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
-  const notification = new Notification({
-    title: 'Maxy Print Bridge',
-    body: 'El programa ya está en ejecución en este equipo.',
-  });
-  notification.show();
+  dialog.showErrorBox(
+    'Maxy Print Bridge ya está abierto',
+    'El programa ya está ejecutándose en este equipo.\n\nBusca el ícono de Maxy en la bandeja del sistema (esquina inferior derecha).',
+  );
   app.quit();
 }
 

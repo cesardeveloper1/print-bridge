@@ -87,6 +87,7 @@ export interface ThermalPrintPayload {
   orderId: string;
   orderNumber?: string;
   brandSubdomain: string;
+  brandName?: string;
   branchName?: string;
   branchExternalId?: string;
   statusLabel: string;

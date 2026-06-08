@@ -88,7 +88,8 @@ function resolveConfig(payload: ThermalPrintPayload): TicketTypeConfig {
 
 function resolveTicketTemplate(template: string, payload: ThermalPrintPayload): string {
   return template
-    .replace(/\{nombre_local\}/g, payload.branchName || payload.brandSubdomain || '')
+    .replace(/\{nombre_marca\}/g, payload.brandName || payload.brandSubdomain || '')
+    .replace(/\{nombre_local\}/g, payload.branchName || payload.brandName || payload.brandSubdomain || '')
     .replace(/\{pedido\}/g, payload.orderId || '');
 }
 
@@ -130,7 +131,7 @@ function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
   if (showHeader) {
     const rawHeaderTitle = cfg.headerTitle?.trim()
       ? resolveTicketTemplate(cfg.headerTitle, payload)
-      : (payload.branchName || payload.brandSubdomain || (isKitchen ? 'COCINA' : 'TICKET'));
+      : (payload.brandName || payload.branchName || payload.brandSubdomain || (isKitchen ? 'COCINA' : 'TICKET'));
     printer.alignCenter();
     printer.bold(true);
     printer.println(rawHeaderTitle.toUpperCase());
@@ -184,7 +185,7 @@ function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
       print: () => {
         printDivider(printer, cfg.dividers?.orderId ?? 'solid');
         printer.alignCenter();
-        printer.println(`Ref: ${payload.orderId}`);
+        printer.println(`Ref: ${payload.orderNumber || payload.orderId}`);
         printer.alignLeft();
       },
     });

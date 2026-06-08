@@ -75,6 +75,16 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
     Impresora de oficina (láser, inkjet). El panel enviará el ticket como PDF y se imprimirá vía Microsoft Edge. Requiere Edge instalado (incluido en Windows 10/11).
   </div>
 
+  <label>Ticket a imprimir automáticamente</label>
+  <div class="radio-group">
+    <label><input type="radio" name="autoTicketType" value="full" checked /> Ticket Completo</label>
+    <label><input type="radio" name="autoTicketType" value="kitchen" /> Ticket de Cocina</label>
+    <label><input type="radio" name="autoTicketType" value="both" /> Ambos</label>
+  </div>
+  <div class="info-box info-thermal" style="margin-top:0.5rem">
+    <span id="info-auto-ticket">Se imprimirá el Ticket Completo (con totales y datos del cliente).</span>
+  </div>
+
   <div>
     <button type="button" id="save">Guardar</button>
   </div>
@@ -95,8 +105,18 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
     const infoThermal = document.getElementById('info-thermal');
     const infoRegular = document.getElementById('info-regular');
 
+    const AUTO_TICKET_LABELS = {
+      full:    'Se imprimirá el Ticket Completo (con totales y datos del cliente).',
+      kitchen: 'Se imprimirá el Ticket de Cocina (solo ítems, sin precios).',
+      both:    'Se imprimirán ambos tickets: Completo y de Cocina.',
+    };
+
     function getSelectedType() {
       return document.querySelector('input[name="printerType"]:checked').value;
+    }
+
+    function getSelectedAutoTicketType() {
+      return document.querySelector('input[name="autoTicketType"]:checked').value;
     }
 
     document.querySelectorAll('input[name="printerType"]').forEach((radio) => {
@@ -104,6 +124,13 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
         const isThermal = getSelectedType() === 'thermal';
         infoThermal.style.display = isThermal ? 'block' : 'none';
         infoRegular.style.display = isThermal ? 'none' : 'block';
+      });
+    });
+
+    document.querySelectorAll('input[name="autoTicketType"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        document.getElementById('info-auto-ticket').textContent =
+          AUTO_TICKET_LABELS[getSelectedAutoTicketType()];
       });
     });
 
@@ -140,6 +167,10 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
       document.querySelector('input[name="printerType"][value="' + savedType + '"]').checked = true;
       infoThermal.style.display = savedType === 'thermal' ? 'block' : 'none';
       infoRegular.style.display = savedType === 'regular' ? 'block' : 'none';
+      // Restore auto ticket type
+      const savedAuto = cfg.autoTicketType || 'full';
+      document.querySelector('input[name="autoTicketType"][value="' + savedAuto + '"]').checked = true;
+      document.getElementById('info-auto-ticket').textContent = AUTO_TICKET_LABELS[savedAuto];
     }
 
     document.getElementById('save').onclick = async () => {
@@ -149,7 +180,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
         const r = await fetch('/api/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ printerName: sel.value || '', printerType: getSelectedType() }),
+          body: JSON.stringify({ printerName: sel.value || '', printerType: getSelectedType(), autoTicketType: getSelectedAutoTicketType() }),
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'Error al guardar');
@@ -205,13 +236,17 @@ export function startSettingsServer(
     if (req.method === 'POST' && url.pathname === '/api/config') {
       try {
         const raw = await readBody(req);
-        const body = JSON.parse(raw || '{}') as { printerName?: string; printerType?: string };
+        const body = JSON.parse(raw || '{}') as { printerName?: string; printerType?: string; autoTicketType?: string };
         const printerName =
           typeof body.printerName === 'string' && body.printerName.trim() !== ''
             ? body.printerName.trim()
             : null;
         const printerType = body.printerType === 'regular' ? 'regular' : 'thermal';
-        writeUserConfig({ printerName, printerType });
+        const validAutoTypes = ['full', 'kitchen', 'both'] as const;
+        const autoTicketType = validAutoTypes.includes(body.autoTicketType as (typeof validAutoTypes)[number])
+          ? (body.autoTicketType as 'full' | 'kitchen' | 'both')
+          : 'full';
+        writeUserConfig({ printerName, printerType, autoTicketType });
         onConfigSaved?.();
         json(res, 200, { ok: true });
       } catch (e: unknown) {

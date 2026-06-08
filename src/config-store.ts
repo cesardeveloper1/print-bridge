@@ -7,6 +7,8 @@ export interface BridgeUserConfig {
   printerName: string | null;
   /** thermal = impresora térmica ESC/POS (default); regular = láser/inkjet vía PDF */
   printerType: 'thermal' | 'regular';
+  /** Qué ticket imprimir automáticamente: full, kitchen o both (default: 'full') */
+  autoTicketType?: 'full' | 'kitchen' | 'both';
   /** Persistido; sincronizado con app.setLoginItemSettings en Electron */
   openAtLogin?: boolean;
   /** Master switch de notificaciones nativas */
@@ -40,9 +42,14 @@ export function readUserConfig(): BridgeUserConfig {
     const printerType = j.printerType === 'regular' ? 'regular' : 'thermal';
     const printerName =
       typeof name === 'string' && name.trim() !== '' ? name.trim() : null;
+    const validAutoTypes = ['full', 'kitchen', 'both'] as const;
+    const autoTicketType = validAutoTypes.includes(j.autoTicketType as (typeof validAutoTypes)[number])
+      ? (j.autoTicketType as 'full' | 'kitchen' | 'both')
+      : 'full';
     return {
       printerName,
       printerType,
+      autoTicketType,
       openAtLogin: j.openAtLogin ?? false,
       showNotifications: j.showNotifications ?? true,
       notifyOnSuccess: j.notifyOnSuccess ?? false,
@@ -58,12 +65,16 @@ export function writeUserConfig(update: Partial<BridgeUserConfig>): void {
   const merged = { ...existing, ...update };
   const dir = configDir();
   fs.mkdirSync(dir, { recursive: true });
+  const validAutoTypes = ['full', 'kitchen', 'both'] as const;
   const toWrite: BridgeUserConfig = {
     printerName:
       typeof merged.printerName === 'string' && merged.printerName.trim() !== ''
         ? merged.printerName.trim()
         : null,
     printerType: merged.printerType === 'regular' ? 'regular' : 'thermal',
+    autoTicketType: validAutoTypes.includes(merged.autoTicketType as (typeof validAutoTypes)[number])
+      ? (merged.autoTicketType as 'full' | 'kitchen' | 'both')
+      : 'full',
     openAtLogin: merged.openAtLogin ?? false,
     showNotifications: merged.showNotifications ?? true,
     notifyOnSuccess: merged.notifyOnSuccess ?? false,

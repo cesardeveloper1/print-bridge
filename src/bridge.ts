@@ -1,6 +1,6 @@
 import { WebSocketServer } from 'ws';
 import type { WebSocket as WSClient } from 'ws';
-import type { PrintJobMessage } from './types';
+import type { PrintJobMessage, ThermalPrintPayload } from './types';
 import { printThermalPayload } from './format-ticket';
 import { startSettingsServer } from './settings-server';
 import { fileLog } from './file-logger';
@@ -22,6 +22,20 @@ export interface BridgeHandle {
   stop(): Promise<void>;
   on(event: 'status', listener: (s: BridgeStatus) => void): void;
   on(event: 'notification', listener: (n: BridgeNotification) => void): void;
+}
+
+function resolveTicketJobs(payload: ThermalPrintPayload): ThermalPrintPayload[] {
+  const { autoTicketType } = readUserConfig();
+  if (autoTicketType === 'kitchen') {
+    return [{ ...payload, ticketType: 'kitchen' }];
+  }
+  if (autoTicketType === 'both') {
+    return [
+      { ...payload, ticketType: 'full' },
+      { ...payload, ticketType: 'kitchen' },
+    ];
+  }
+  return [{ ...payload, ticketType: 'full' }];
 }
 
 function parseMessage(text: string): PrintJobMessage | null {
@@ -165,13 +179,17 @@ export async function startBridge(options?: {
         return;
       }
 
-      setStatus({ state: 'printing', queuePending: queue.pendingCount + 1 });
+      const jobs = resolveTicketJobs(msg.thermalPrint);
+      setStatus({ state: 'printing', queuePending: queue.pendingCount + jobs.length });
 
-      void queue
-        .add(async () => {
-          const resolved = resolvePrinterForPrint();
-          await printThermalPayload(msg.thermalPrint, resolved.printerName);
-        })
+      void Promise.all(
+        jobs.map((jobPayload) =>
+          queue.add(async () => {
+            const resolved = resolvePrinterForPrint();
+            await printThermalPayload(jobPayload, resolved.printerName);
+          }),
+        ),
+      )
         .then(() => {
           const now = new Date().toISOString();
           setStatus({
