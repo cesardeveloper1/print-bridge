@@ -9,6 +9,8 @@ export interface BridgeUserConfig {
   printerType: 'thermal' | 'regular';
   /** Qué ticket imprimir automáticamente: full, kitchen o both (default: 'full') */
   autoTicketType?: 'full' | 'kitchen' | 'both';
+  /** Ancho de línea en caracteres según el ancho del papel: 32 = 58mm, 48 = 80mm, 64 = 112mm (default: 48) */
+  lineWidth?: 32 | 48 | 64;
   /** Persistido; sincronizado con app.setLoginItemSettings en Electron */
   openAtLogin?: boolean;
   /** Master switch de notificaciones nativas */
@@ -46,10 +48,12 @@ export function readUserConfig(): BridgeUserConfig {
     const autoTicketType = validAutoTypes.includes(j.autoTicketType as (typeof validAutoTypes)[number])
       ? (j.autoTicketType as 'full' | 'kitchen' | 'both')
       : 'full';
+    const lineWidth: 32 | 48 | 64 = j.lineWidth === 32 ? 32 : j.lineWidth === 64 ? 64 : 48;
     return {
       printerName,
       printerType,
       autoTicketType,
+      lineWidth,
       openAtLogin: j.openAtLogin ?? false,
       showNotifications: j.showNotifications ?? true,
       notifyOnSuccess: j.notifyOnSuccess ?? false,
@@ -75,6 +79,7 @@ export function writeUserConfig(update: Partial<BridgeUserConfig>): void {
     autoTicketType: validAutoTypes.includes(merged.autoTicketType as (typeof validAutoTypes)[number])
       ? (merged.autoTicketType as 'full' | 'kitchen' | 'both')
       : 'full',
+    lineWidth: merged.lineWidth === 32 ? 32 : merged.lineWidth === 64 ? 64 : 48,
     openAtLogin: merged.openAtLogin ?? false,
     showNotifications: merged.showNotifications ?? true,
     notifyOnSuccess: merged.notifyOnSuccess ?? false,

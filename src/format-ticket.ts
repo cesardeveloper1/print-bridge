@@ -8,11 +8,11 @@ import {
   ThermalPrinter,
 } from 'node-thermal-printer';
 import type { DividerStyle, ThermalPrintPayload } from './types';
+import { readUserConfig } from './config-store';
 import { fileLog } from './file-logger';
 import { sendRawToCupsPrinter } from './cups-raw-print';
 import { sendRawToWindowsPrinter } from './win-raw-print';
 import { sendPdfToPrinter } from './win-pdf-print';
-import { readUserConfig } from './config-store';
 
 const RETRY_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 1500;
@@ -93,6 +93,41 @@ function resolveTicketTemplate(template: string, payload: ThermalPrintPayload): 
     .replace(/\{pedido\}/g, payload.orderId || '');
 }
 
+function printItemRow(
+  printer: InstanceType<typeof ThermalPrinter>,
+  qty: number,
+  name: string,
+  price: string | undefined,
+  showPrices: boolean,
+  lineWidth: number,
+): void {
+  const qtyStr = `${qty}x `;
+  const priceStr = showPrices && price ? ` ${price}` : '';
+  const priceWidth = priceStr.length;
+  const nameWidth = lineWidth - qtyStr.length - priceWidth;
+
+  const chunks: string[] = [];
+  let remaining = name.trim();
+  while (remaining.length > 0) {
+    chunks.push(remaining.slice(0, nameWidth));
+    remaining = remaining.slice(nameWidth);
+  }
+  if (chunks.length === 0) chunks.push('');
+
+  const indent = ' '.repeat(qtyStr.length);
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const isLast = i === chunks.length - 1;
+    const prefix = i === 0 ? qtyStr : indent;
+    if (isLast && priceStr) {
+      const pad = ' '.repeat(Math.max(0, nameWidth - chunk.length));
+      printer.println(`${prefix}${chunk}${pad}${priceStr}`);
+    } else {
+      printer.println(`${prefix}${chunk}`);
+    }
+  }
+}
+
 // ─── ESC/POS buffer builder ───────────────────────────────────────────────────
 
 function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
@@ -114,6 +149,7 @@ function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
   const isKitchen = payload.ticketType === 'kitchen';
   const sym = payload.currencySymbol || 'S/';
   const cfg = resolveConfig(payload);
+  const lineWidth: number = readUserConfig().lineWidth ?? 48;
 
   // Derived show/hide flags
   const showHeader  = cfg.showHeader  ?? true;
@@ -215,33 +251,22 @@ function buildEscPosBuffer(payload: ThermalPrintPayload): Buffer {
     order: cfg.items?.order ?? 2,
     print: () => {
       printDivider(printer, cfg.dividers?.items ?? 'solid');
+      const sym2 = payload.currencySymbol || 'S/';
+      // Header
       if (showPrices) {
-        printer.tableCustom([
-          { text: 'Cant.', align: 'LEFT', width: 0.15 },
-          { text: 'Producto', align: 'LEFT', width: 0.55 },
-          { text: 'Precio', align: 'RIGHT', width: 0.30 },
-        ]);
+        const hdrPrice = 'Precio';
+        const hdrPad = ' '.repeat(Math.max(0, lineWidth - 'Cant. '.length - 'Producto'.length - hdrPrice.length - 1));
+        printer.println(`Cant. Producto${hdrPad} ${hdrPrice}`);
       } else {
-        printer.tableCustom([
-          { text: 'Cant.', align: 'LEFT', width: 0.20 },
-          { text: 'Producto', align: 'LEFT', width: 0.80 },
-        ]);
+        printer.println(`Cant. Producto`);
       }
       printer.drawLine();
       for (const item of payload.items || []) {
         const lineTotal = item.lineTotal ?? (item.unitPrice !== undefined ? item.quantity * item.unitPrice : undefined);
-        if (showPrices) {
-          printer.tableCustom([
-            { text: String(item.quantity), align: 'LEFT', width: 0.15 },
-            { text: item.name, align: 'LEFT', width: 0.55 },
-            { text: lineTotal !== undefined ? lineTotal.toFixed(2) : '', align: 'RIGHT', width: 0.30 },
-          ]);
-        } else {
-          printer.tableCustom([
-            { text: String(item.quantity), align: 'LEFT', width: 0.20 },
-            { text: item.name, align: 'LEFT', width: 0.80 },
-          ]);
-        }
+        const priceLabel = showPrices && lineTotal !== undefined
+          ? `${sym2} ${lineTotal.toFixed(2)}`
+          : undefined;
+        printItemRow(printer, item.quantity, item.name, priceLabel, showPrices, lineWidth);
         for (const mod of item.modifiers || []) printer.println(`  + ${mod}`);
         if (item.notes) printer.println(`  ★ ${item.notes}`);
       }
