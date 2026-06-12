@@ -1,0 +1,59 @@
+---
+description: Formato corto para mensajes de commit
+alwaysApply: true
+---
+
+# Formato de commits
+
+Primera línea obligatoria:
+
+```
+tipo(alcance opcional): descripción breve en imperativo
+```
+
+- Máximo **~72 caracteres** en la primera línea.
+- Sin punto final en la primera línea.
+- Una sola idea por commit (resumen si hay varios avances).
+
+## Tipos
+
+| Tipo | Uso |
+|---|---|
+| `feat` | Nueva funcionalidad |
+| `fix` | Corrección de bug |
+| `docs` | Documentación, blog, README |
+| `refactor` | Cambio interno sin cambiar comportamiento |
+| `chore` | Deps, config, reglas Cursor |
+| `test` | Pruebas |
+| `style` | Formato sin lógica |
+
+Alcance opcional: `artemis`, `panel`, `blog`, `yango`, `cursor`.
+
+## Cuerpo (opcional)
+
+Separar del subject con línea en blanco.
+
+- Un cambio: 2–3 líneas con el *por qué*.
+- Varios avances del mismo tema: lista `-`, un ítem por línea, máx. ~5.
+
+Ejemplo:
+
+```
+docs(blog): añade posts técnicos del ecosistema
+
+- Post LangSmith en Artemis (runName y debugging)
+- Integración Yango con payloads raw
+- Reglas Cursor para commits en español
+```
+
+## Ejemplos de subject
+
+- `docs(blog): añade post sobre trazas LangSmith en Artemis`
+- `fix(artemis): corrige moneda en resultados de búsqueda`
+- `chore(cursor): define formato corto para commits`
+
+## Evitar
+
+- Párrafos largos en una sola línea.
+- Mensajes vagos: WIP, fix stuff, varios cambios.
+- Temas no relacionados en un solo commit.

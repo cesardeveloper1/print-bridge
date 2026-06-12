@@ -1,0 +1,12 @@
+---
+description: OBLIGATORIO — commits solo en español, nunca en inglés
+alwaysApply: true
+---
+
+# Commits en español
+
+**NUNCA** escribas mensajes de commit en inglés. **Solo español.**
+
+- Aplica al botón ✨ de Source Control, al agente y a commits manuales.
+- Nombres técnicos (LangSmith, NestJS, etc.) pueden quedar en original.
+- Formato: ver regla `commits-formato`.
