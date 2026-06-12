@@ -287,6 +287,37 @@ wscat -c ws://127.0.0.1:17880
 
 Página de impresora: **`http://127.0.0.1:17881`**
 
+### Conflicto de tags al hacer pull
+
+Si `git pull --tags origin main` falla con un mensaje como:
+
+```
+! [rejected]        print-bridge-1.3.0 -> print-bridge-1.3.0  (would clobber existing tag)
+```
+
+el tag ya existe en local apuntando a un commit distinto del remoto. Git no lo sobrescribe automáticamente.
+
+**Borrar el tag local** (no afecta al remoto):
+
+```bash
+git tag -d print-bridge-1.3.0
+```
+
+Luego sincronizar de nuevo:
+
+```bash
+git pull --tags origin main
+```
+
+**Verificar** (opcional) a qué commit apunta cada uno:
+
+```bash
+git show print-bridge-1.3.0 --no-patch
+git ls-remote --tags origin | grep print-bridge
+```
+
+> Si el tag local era el correcto y el remoto está mal, no lo borres sin revisar; en ese caso el problema está en GitHub, no en tu clon.
+
 ---
 
 ## CI (GitHub Actions)

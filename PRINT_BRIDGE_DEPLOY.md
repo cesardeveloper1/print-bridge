@@ -176,6 +176,8 @@ El workflow vive en el **repositorio Git del bridge**. Si trabajás en un monore
 | URLs para el panel | Instalador → **`VITE_PRINT_BRIDGE_DOWNLOAD_URL`**; portable → **`VITE_PRINT_BRIDGE_DOWNLOAD_URL_PORTABLE`**. Actualizar en GitHub Environment **production** del panel y redesplegar. |
 | Prueba sin release | **Actions** → **Run workflow** → artifact `maxy-print-bridge-win-electron`. |
 
+Si `git pull --tags origin main` rechaza un tag con *would clobber existing tag*, borra el tag local (`git tag -d print-bridge-X.Y.Z`) y vuelve a hacer pull. Detalle en [`README.md` — Conflicto de tags al hacer pull](./README.md#conflicto-de-tags-al-hacer-pull).
+
 **Orden de despliegue:**
 ```
 1. Merge + release print-bridge (setup + portable en GitHub Releases)
