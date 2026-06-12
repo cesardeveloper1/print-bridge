@@ -1,0 +1,84 @@
+---
+description: Formato y mensajes de commit en español
+alwaysApply: true
+---
+
+# Mensajes de commit
+
+## Idioma
+
+- Siempre en **español** (incluido el generador de commit de Cursor).
+- Nombres técnicos propios (LangSmith, Artemis, NestJS, etc.) pueden quedar en su forma original.
+
+## Formato de la primera línea (obligatorio)
+
+```
+tipo(alcance opcional): descripción breve en imperativo
+```
+
+- Máximo **~72 caracteres** en la primera línea.
+- Sin punto final en la primera línea.
+- **Una sola idea** por commit (resumen del conjunto si hay varios avances).
+
+### Tipos
+
+| Tipo | Cuándo usarlo |
+|---|---|
+| `feat` | Nueva funcionalidad |
+| `fix` | Corrección de bug |
+| `docs` | Documentación, blog, README |
+| `refactor` | Cambio interno sin cambiar comportamiento |
+| `chore` | Tareas menores, deps, config, reglas Cursor |
+| `test` | Pruebas |
+| `style` | Formato sin cambio de lógica |
+
+### Alcance (opcional)
+
+Módulo, carpeta o feature corto: `artemis`, `panel`, `blog`, `yango`, `cursor`.
+
+## Cuerpo (opcional)
+
+Separar del subject con una línea en blanco.
+
+- **Un solo cambio con contexto:** 2–3 líneas explicando el *por qué*.
+- **Varios avances relacionados en el mismo commit:** lista con guiones (`-`), **un ítem por línea**, máximo ~5 ítems.
+
+## Varios cambios en un commit
+
+Cuando el commit agrupa varias implementaciones o avances **del mismo tema**, mantén el subject corto como resumen y detalla en el cuerpo:
+
+```
+docs(blog): añade posts técnicos del ecosistema Agiliza
+
+- Post LangSmith en Artemis (runName y debugging)
+- Integración Yango en tres capas con payloads raw
+- Integración Rest.pe con registrarDelivery y respuestas
+- Reglas Cursor para commits en español con formato corto
+```
+
+Reglas de la lista:
+
+- Español, frases breves (imperativo o descriptivo).
+- Un avance o archivo/tema por línea.
+- No repetir el subject; la lista concreta *qué* incluye el commit.
+
+## Ejemplos buenos
+
+```
+docs(blog): añade post sobre trazas LangSmith en Artemis
+```
+
+```
+fix(artemis): corrige moneda en resultados de búsqueda
+```
+
+```
+chore(cursor): define formato corto para commits en español
+```
+
+## Evitar
+
+- Párrafos largos en una sola línea (usar lista en el cuerpo).
+- Mensajes en inglés (`Add new blog post…`).
+- `WIP`, `fix stuff`, `varios cambios` sin concretar.
+- Mezclar temas no relacionados — preferir **commits separados** o listar solo lo que sí va junto.
