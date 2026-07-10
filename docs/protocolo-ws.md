@@ -1,9 +1,17 @@
-# Protocolo WebSocket (puerto 17880)
+# Protocolo WebSocket (puerto 17880, con fallback)
 
 - **Ping:** `{"type":"ping"}` → `{"ok":true,"type":"pong"}`
 - **Imprimir:** `{"type":"print","version":1,"token":"...","thermalPrint":{...}}` → `{"ok":true}` o error
 
 Cola interna: **un ticket a la vez**.
+
+## Puerto dinámico (17880 preferido, no garantizado)
+
+`17880` es el puerto **preferido**, no fijo. Si está ocupado por otro programa, el bridge le pide al sistema operativo un puerto libre (`listen(0, host)`) y sigue funcionando ahí — no se cae ni deja de imprimir. El puerto real queda en `BridgeStatus.wsPort` y se reporta en `GET http://127.0.0.1:17881/api/config` (campo `wsPort`), en el **mismo puerto fijo de settings (17881)**, que no tiene fallback.
+
+El panel (`localPrintBridge.ts`, función `resolveWsUrl`) consulta ese endpoint antes de conectar el WS: si `17880` no responde, pregunta a `17881/api/config` cuál es el puerto real y conecta ahí. Si esa consulta también falla (caso borde: los dos puertos ocupados a la vez), usa el puerto configurado por defecto como último recurso — no hay reintento ni escaneo de más puertos, es una limitación conocida y aceptada.
+
+Ver `PRPs/008--ws-port-fallback.md` para el detalle de la implementación.
 
 ## Seguridad
 

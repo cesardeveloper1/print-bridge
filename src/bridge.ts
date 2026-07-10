@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
-import type { WebSocket as WSClient } from 'ws';
+import type { WebSocket as WSClient, VerifyClientCallbackAsync } from 'ws';
+import type { AddressInfo } from 'net';
 import type { PrintJobMessage, ThermalPrintPayload } from './types';
 import { printThermalPayload } from './format-ticket';
 import { startSettingsServer } from './settings-server';
@@ -38,6 +39,46 @@ function resolveTicketJobs(payload: ThermalPrintPayload): ThermalPrintPayload[] 
     ];
   }
   return [{ ...payload, ticketType: 'full' }];
+}
+
+/**
+ * Intenta escuchar en `preferredPort`; si está ocupado (EADDRINUSE), le pide al SO
+ * un puerto libre (`listen(0, host)`). El puerto real (fijo o de fallback) se lee
+ * de `wss.address()` y queda disponible vía BridgeStatus.wsPort / GET /api/config
+ * (puerto UI_PORT, que sí es fijo) para que el panel lo descubra.
+ */
+function bindWebSocketServerWithFallback(
+  host: string,
+  preferredPort: number,
+  verifyClient: VerifyClientCallbackAsync,
+): Promise<{ wss: WebSocketServer; port: number }> {
+  return new Promise((resolve, reject) => {
+    const attempt = (port: number, isFallback: boolean) => {
+      const candidate = new WebSocketServer({ host, port, verifyClient });
+
+      const onError = (err: NodeJS.ErrnoException) => {
+        candidate.removeAllListeners('listening');
+        if (err.code === 'EADDRINUSE' && !isFallback) {
+          fileLog.error(`Puerto ${preferredPort} ocupado — pidiendo uno libre al SO`);
+          attempt(0, true);
+          return;
+        }
+        reject(err);
+      };
+
+      const onListening = () => {
+        candidate.removeAllListeners('error');
+        const addr = candidate.address();
+        const actualPort = addr && typeof addr === 'object' ? (addr as AddressInfo).port : preferredPort;
+        resolve({ wss: candidate, port: actualPort });
+      };
+
+      candidate.once('error', onError);
+      candidate.once('listening', onListening);
+    };
+
+    attempt(preferredPort, false);
+  });
 }
 
 function parseMessage(text: string): PrintJobMessage | null {
@@ -86,19 +127,32 @@ export async function startBridge(options?: {
   }
 
   warmupSendRawPrintScript();
-  fileLog.info(`iniciando maxy-print-bridge ws=${host}:${WS_PORT} ui=${host}:${UI_PORT}`);
 
   const suppressConsole = options?.packaged !== false && !!process.versions?.electron;
+
+  const verifyClient: VerifyClientCallbackAsync = (info, cb) => {
+    if (isOriginAllowed(info.origin, suppressConsole)) return cb(true);
+    fileLog.error(`WS rechazado: origin no permitido "${info.origin}"`);
+    cb(false, 403, 'Origin no permitido');
+  };
+
+  const { wss, port: wsPort } = await bindWebSocketServerWithFallback(host, WS_PORT, verifyClient);
+  status = { ...status, wsPort };
+
+  if (wsPort !== WS_PORT) {
+    fileLog.info(`Puerto ${WS_PORT} ocupado — bridge usando puerto ${wsPort} en su lugar`);
+  }
+  fileLog.info(`iniciando maxy-print-bridge ws=${host}:${wsPort} ui=${host}:${UI_PORT}`);
 
   if (!suppressConsole) {
     // eslint-disable-next-line no-console
     console.log(
-      `[maxy-print-bridge] Impresión: ws://${host}:${WS_PORT} (el panel envía los trabajos aquí)`,
+      `[maxy-print-bridge] Impresión: ws://${host}:${wsPort} (el panel envía los trabajos aquí)`,
     );
-    logPackagedStartupBanner(host, UI_PORT, WS_PORT);
+    logPackagedStartupBanner(host, UI_PORT, wsPort);
   }
 
-  const settingsServer = startSettingsServer(UI_PORT, host, () => {
+  const settingsServer = startSettingsServer(UI_PORT, host, wsPort, () => {
     const newCfg = readUserConfig();
     setStatus({
       state: newCfg.printerName ? 'ready' : 'no-printer',
@@ -115,48 +169,28 @@ export async function startBridge(options?: {
       notify({
         kind: 'error',
         title: 'Error de puerto',
-        body: `El puerto ${UI_PORT} está en uso por otro programa.`,
+        body: `El puerto ${UI_PORT} está en uso por otro programa. Cierre el otro programa y reinicie Maxy Print Bridge.`,
       });
     }
-  });
-
-  const wss = new WebSocketServer({
-    host,
-    port: WS_PORT,
-    verifyClient: (info, cb) => {
-      if (isOriginAllowed(info.origin, suppressConsole)) return cb(true);
-      fileLog.error(`WS rechazado: origin no permitido "${info.origin}"`);
-      cb(false, 403, 'Origin no permitido');
-    },
   });
 
   wss.on('error', (err: NodeJS.ErrnoException) => {
-    fileLog.error(`websocket server error: ${err.message}`);
-    if (err.code === 'EADDRINUSE') {
-      setStatus({ state: 'error', lastError: `Puerto ${WS_PORT} en uso` });
-      notify({
-        kind: 'error',
-        title: 'Error de puerto',
-        body: `El puerto ${WS_PORT} está en uso por otro programa.`,
-      });
-    }
+    fileLog.error(`websocket server error (post-bind): ${err.message}`);
   });
 
-  wss.on('listening', () => {
-    const cfg = readUserConfig();
-    setStatus({
-      state: cfg.printerName ? 'ready' : 'no-printer',
-      printerName: cfg.printerName,
-      printerType: cfg.printerType,
-    });
-    if (!cfg.printerName) {
-      notify({
-        kind: 'info',
-        title: 'Maxy Print Bridge',
-        body: 'Configure su impresora en el navegador.',
-      });
-    }
+  const cfgAtListen = readUserConfig();
+  setStatus({
+    state: cfgAtListen.printerName ? 'ready' : 'no-printer',
+    printerName: cfgAtListen.printerName,
+    printerType: cfgAtListen.printerType,
   });
+  if (!cfgAtListen.printerName) {
+    notify({
+      kind: 'info',
+      title: 'Maxy Print Bridge',
+      body: 'Configure su impresora en el navegador.',
+    });
+  }
 
   wss.on('connection', (socket: WSClient) => {
     socket.on('message', (raw) => {

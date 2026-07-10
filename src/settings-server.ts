@@ -1,7 +1,7 @@
 import * as http from 'http';
 import { readUserConfig, writeUserConfig } from './config-store';
 import { listPrinters } from './printers';
-import { WS_PORT, UI_URL } from './ports';
+import { UI_URL } from './ports';
 import { isOriginAllowed } from './allowed-origins';
 import { PRINT_BRIDGE_SHARED_TOKEN } from './bridge-token';
 import { fileLog } from './file-logger';
@@ -297,6 +297,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
 export function startSettingsServer(
   port: number,
   host: string,
+  wsPort: number,
   onConfigSaved?: () => void,
 ): http.Server {
   const server = http.createServer(async (req, res) => {
@@ -326,7 +327,7 @@ export function startSettingsServer(
     }
 
     if (req.method === 'GET' && url.pathname === '/api/config') {
-      json(res, 200, { ...readUserConfig(), wsPort: WS_PORT }, origin);
+      json(res, 200, { ...readUserConfig(), wsPort }, origin);
       return;
     }
 

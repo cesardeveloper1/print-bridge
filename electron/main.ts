@@ -13,7 +13,7 @@ import {
 import { startBridge } from '../src/bridge';
 import type { BridgeHandle, BridgeStatus } from '../src/bridge';
 import { configDir, configFilePath, readUserConfig, writeUserConfig } from '../src/config-store';
-import { UI_URL, WS_URL, WS_PORT, UI_PORT } from '../src/ports';
+import { UI_URL, BRIDGE_HOST, WS_PORT } from '../src/ports';
 import { printThermalPayload } from '../src/format-ticket';
 import { resolvePrinterForPrint } from '../src/resolve-printer';
 import { buildTestPrintPayload } from '../src/test-print';
@@ -48,6 +48,11 @@ app.on('window-all-closed', () => { /* keep running in tray */ });
 let tray: Tray | null = null;
 let bridge: BridgeHandle | null = null;
 let lastStatus: BridgeStatus | null = null;
+
+/** Puerto real del WS (puede diferir de WS_PORT si el preferido estaba ocupado). */
+function currentWsUrl(): string {
+  return `ws://${BRIDGE_HOST}:${lastStatus?.wsPort ?? WS_PORT}`;
+}
 
 function showNotification(title: string, body: string): void {
   if (!Notification.isSupported()) return;
@@ -93,7 +98,7 @@ function buildContextMenu(): Electron.Menu {
     { label: `Maxy Print Bridge v${version}`, enabled: false },
     { type: 'separator' },
     {
-      label: `${stateEmoji[state] ?? '○'} ${stateLabel[state] ?? state} — ${WS_URL}`,
+      label: `${stateEmoji[state] ?? '○'} ${stateLabel[state] ?? state} — ${currentWsUrl()}`,
       enabled: false,
     },
     { label: `Impresora: ${printerName} (${printerType})`, enabled: false },
@@ -154,7 +159,7 @@ function buildContextMenu(): Electron.Menu {
           title: 'Maxy Print Bridge',
           message: `Maxy Print Bridge v${version}`,
           detail:
-            `WebSocket: ${WS_URL}\n` +
+            `WebSocket: ${currentWsUrl()}\n` +
             `Configuración: ${UI_URL}\n` +
             `Config guardada: ${configFilePath()}`,
           buttons: ['Cerrar'],
@@ -225,7 +230,7 @@ function copySupportInfo(): void {
     `OS: ${process.platform} ${os.release()}`,
     `Impresora: ${status?.printerName ?? 'Sin configurar'} (${status?.printerType ?? 'thermal'})`,
     `Config: ${configFilePath()}`,
-    `WS: ${WS_URL} — ${status?.state === 'error' ? 'ERROR' : 'OK'}`,
+    `WS: ${currentWsUrl()} — ${status?.state === 'error' ? 'ERROR' : 'OK'}`,
     `UI: ${UI_URL}`,
     `Último error: ${status?.lastError ?? 'ninguno'}`,
     `Log: ${path.join(configDir(), 'bridge.log')}`,
@@ -295,13 +300,7 @@ app.whenReady().then(() => {
       app.quit();
     });
 
-  // Sync port usage: if WS_PORT or UI_PORT are in use by another app
-  // (not our own instance — that is handled by requestSingleInstanceLock)
 }).catch((err: Error) => {
   fileLog.error(`electron ready error: ${err.message}`);
   app.quit();
 });
-
-// Keep WS_PORT and UI_PORT in scope to avoid unused-import warnings
-void WS_PORT;
-void UI_PORT;
