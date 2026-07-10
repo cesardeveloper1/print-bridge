@@ -1,13 +1,30 @@
 import * as http from 'http';
 import { readUserConfig, writeUserConfig } from './config-store';
 import { listPrinters } from './printers';
-import { WS_PORT } from './ports';
+import { WS_PORT, UI_URL } from './ports';
+import { isOriginAllowed } from './allowed-origins';
+import { PRINT_BRIDGE_SHARED_TOKEN } from './bridge-token';
+import { fileLog } from './file-logger';
 
-function json(res: http.ServerResponse, code: number, body: unknown) {
+/** UI_URL (http://127.0.0.1:17881) es el origen de la propia página de settings — el navegador
+ *  manda Origin en sus POST same-origin y hay que aceptarlo aunque no sea el panel. */
+function isSettingsOriginAllowed(origin: string | undefined): boolean {
+  if (origin === UI_URL) return true;
+  return isOriginAllowed(origin, true);
+}
+
+function corsHeaders(origin: string | undefined): Record<string, string> {
+  const allowed = isSettingsOriginAllowed(origin);
+  return allowed && origin
+    ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }
+    : {};
+}
+
+function json(res: http.ServerResponse, code: number, body: unknown, origin?: string) {
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
-    'Access-Control-Allow-Origin': '*',
+    ...corsHeaders(origin),
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   });
@@ -258,7 +275,7 @@ const SETTINGS_PAGE = `<!DOCTYPE html>
         const r = await fetch('/api/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ printerName: sel.value || '', printerType: getSelectedType(), autoTicketType: getSelectedAutoTicketType(), lineWidth: getSelectedLineWidth() }),
+          body: JSON.stringify({ token: '__BRIDGE_TOKEN__', printerName: sel.value || '', printerType: getSelectedType(), autoTicketType: getSelectedAutoTicketType(), lineWidth: getSelectedLineWidth() }),
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'Error al guardar');
@@ -284,10 +301,18 @@ export function startSettingsServer(
 ): http.Server {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${host}`);
+    const origin = req.headers.origin;
+
+    if (origin && !isSettingsOriginAllowed(origin)) {
+      fileLog.error(`settings-server rechazado: origin no permitido "${origin}" (${req.method} ${url.pathname})`);
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Origin no permitido');
+      return;
+    }
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
+        ...corsHeaders(origin),
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       });
@@ -296,25 +321,30 @@ export function startSettingsServer(
     }
 
     if (req.method === 'GET' && url.pathname === '/') {
-      html(res, 200, SETTINGS_PAGE);
+      html(res, 200, SETTINGS_PAGE.replace('__BRIDGE_TOKEN__', PRINT_BRIDGE_SHARED_TOKEN));
       return;
     }
 
     if (req.method === 'GET' && url.pathname === '/api/config') {
-      json(res, 200, { ...readUserConfig(), wsPort: WS_PORT });
+      json(res, 200, { ...readUserConfig(), wsPort: WS_PORT }, origin);
       return;
     }
 
     if (req.method === 'GET' && url.pathname === '/api/printers') {
       const printers = listPrinters();
-      json(res, 200, { printers });
+      json(res, 200, { printers }, origin);
       return;
     }
 
     if (req.method === 'POST' && url.pathname === '/api/config') {
       try {
         const raw = await readBody(req);
-        const body = JSON.parse(raw || '{}') as { printerName?: string; printerType?: string; autoTicketType?: string; lineWidth?: number };
+        const body = JSON.parse(raw || '{}') as { token?: string; printerName?: string; printerType?: string; autoTicketType?: string; lineWidth?: number };
+        if (body.token !== PRINT_BRIDGE_SHARED_TOKEN) {
+          fileLog.error('settings-server: POST /api/config rechazado (token inválido)');
+          json(res, 401, { ok: false, error: 'No autorizado' }, origin);
+          return;
+        }
         const printerName =
           typeof body.printerName === 'string' && body.printerName.trim() !== ''
             ? body.printerName.trim()
@@ -327,10 +357,10 @@ export function startSettingsServer(
         const lineWidth: 32 | 48 | 64 = body.lineWidth === 32 ? 32 : body.lineWidth === 64 ? 64 : 48;
         writeUserConfig({ printerName, printerType, autoTicketType, lineWidth });
         onConfigSaved?.();
-        json(res, 200, { ok: true });
+        json(res, 200, { ok: true }, origin);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        json(res, 400, { ok: false, error: msg });
+        json(res, 400, { ok: false, error: msg }, origin);
       }
       return;
     }

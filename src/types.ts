@@ -116,4 +116,6 @@ export interface PrintJobMessage {
   type: 'print';
   version: 1;
   thermalPrint: ThermalPrintPayload;
+  /** Debe coincidir con PRINT_BRIDGE_SHARED_TOKEN (src/bridge-token.ts) */
+  token?: string;
 }

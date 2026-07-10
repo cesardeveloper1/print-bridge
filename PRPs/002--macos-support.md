@@ -47,6 +47,8 @@ O bien: **click derecho → Abrir** en Finder la primera vez.
 
 Documentar esto en `PRINT_BRIDGE_DEPLOY.md` y en el panel (ver PRP 040).
 
+> **Actualización (2026-07-10):** la distribución mac migró de este binario `pkg` suelto a un `.app` empaquetado con Electron dentro de un `.dmg` (ver `.github/workflows/print-bridge-release.yml`, jobs `build-mac-x64`/`build-mac-arm64`). El comando de arriba ya no aplica tal cual — para un `.app` sin firmar hace falta `xattr -cr` (recursivo) sobre el bundle, y sin ese paso Gatekeeper en Ventura/Sonoma+ muestra "está dañado" en vez del clásico aviso de "desarrollador no identificado". Instrucciones vigentes: [docs/deploy/pc-cliente.md](../docs/deploy/pc-cliente.md#macos).
+
 ---
 
 ## Archivos a modificar

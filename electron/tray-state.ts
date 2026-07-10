@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { nativeImage, type Tray } from 'electron';
+import { app, nativeImage, type Tray } from 'electron';
 import type { BridgeStatus, BridgeState } from '../src/bridge-events';
 
 const ICON_NAMES: Record<BridgeState, string> = {
@@ -19,11 +19,12 @@ const STATE_LABELS: Record<BridgeState, string> = {
 };
 
 function assetsDir(): string {
-  // In packaged app: resources/assets; in dev: project/assets
-  if (process.env.NODE_ENV === 'development' || !process.resourcesPath) {
-    return path.join(__dirname, '..', 'assets');
-  }
-  return path.join(process.resourcesPath, 'assets');
+  // app.getAppPath() resolves to the project root in dev and to
+  // resources/app.asar when packaged — assets/ sits at the root of both,
+  // since electron-builder's `files` config bundles it inside the asar.
+  // (process.resourcesPath + 'assets' is wrong: nothing copies assets there,
+  // they end up inside app.asar instead.)
+  return path.join(app.getAppPath(), 'assets');
 }
 
 export function getIconForState(state: BridgeState): Electron.NativeImage {
@@ -31,7 +32,13 @@ export function getIconForState(state: BridgeState): Electron.NativeImage {
   const iconPath = path.join(assetsDir(), iconFile);
   const img = nativeImage.createFromPath(iconPath);
   // Fallback: empty image if file not found (avoids crash during development)
-  return img.isEmpty() ? nativeImage.createEmpty() : img;
+  if (img.isEmpty()) return nativeImage.createEmpty();
+  // Windows tray expects 16x16. Only resize when needed: Electron's resize()
+  // can flatten transparent pixels to black on Windows, so avoid it on
+  // sources that are already the right size.
+  const { width, height } = img.getSize();
+  if (width === 16 && height === 16) return img;
+  return img.resize({ width: 16, height: 16, quality: 'best' });
 }
 
 export function buildTooltip(status: BridgeStatus): string {

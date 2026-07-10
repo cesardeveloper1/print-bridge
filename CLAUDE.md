@@ -29,15 +29,21 @@ Two servers start concurrently from `src/index.ts`:
 | WebSocket (`ws`) | 17880 | Receives print jobs from the web panel |
 | HTTP (`http`) | 17881 | Local settings UI to pick the printer |
 
-Both bind to `127.0.0.1` only — no external exposure.
+Both bind to `127.0.0.1` only — no external exposure. Both also validate the browser's `Origin` header (`src/allowed-origins.ts`) and a shared token (`src/bridge-token.ts`) before accepting print jobs or config changes — see "Security" below.
 
 ### Print flow
 
 1. The panel (browser) opens a WebSocket to `ws://127.0.0.1:17880`.
-2. It sends `{ type: "print", version: 1, thermalPrint: ThermalPrintPayload }`.
-3. `index.ts` validates and enqueues the job via `p-queue` (concurrency = 1).
+2. It sends `{ type: "print", version: 1, token: "...", thermalPrint: ThermalPrintPayload }`.
+3. `bridge.ts` validates the origin (handshake), the token, and enqueues the job via `SerialPrintQueue` (concurrency = 1).
 4. `format-ticket.ts` builds the ESC/POS ticket using `node-thermal-printer` (EPSON driver, `printer:<name>` interface) and calls `printer.execute()`.
 5. The socket receives `{ ok: true }` or `{ ok: false, error: "..." }`.
+
+### Security (`allowed-origins.ts`, `bridge-token.ts`)
+
+Both local servers reject connections whose `Origin` isn't in `ALLOWED_ORIGINS` (production panel domain + `localhost:8080` dev). No-`Origin` requests (e.g. `wscat`) are only allowed when not packaged (`npm run dev`). `PrintJobMessage.token` (WS `print`) and `POST /api/config` (settings) must match `PRINT_BRIDGE_SHARED_TOKEN`, which must be kept in sync with `VITE_PRINT_BRIDGE_TOKEN` baked into the panel build (`panel-admin-ag360ai/PRPs/169--print-bridge-ws-origin-token.md`). The settings page itself gets the token injected server-side when served (`SETTINGS_PAGE.replace('__BRIDGE_TOKEN__', ...)`) — the cashier never sees or copies it.
+
+`src/bridge-token.ts` is **generated, not hand-written** — it's gitignored. `scripts/generate-bridge-token.mjs` reads `PRINT_BRIDGE_TOKEN` from `.env` (also gitignored) and writes it before every `dev`/`build`/`build:electron` (via `predev`/`prebuild`/`prebuild:electron` npm hooks). Fails loudly (exit 1) if `PRINT_BRIDGE_TOKEN` is missing from `.env`. To change the token: edit `.env`, rerun the npm script — never edit `bridge-token.ts` directly, it gets overwritten.
 
 ### Printer resolution (`index.ts → resolvePrinterName`)
 
@@ -45,7 +51,7 @@ Priority: saved config → Windows default → throws. Config is read fresh on e
 
 ### Settings UI (`settings-server.ts`)
 
-Pure Node `http` server. Three endpoints: `GET /` (HTML page, inlined in the source), `GET /api/config`, `POST /api/config`. The page uses `fetch` to list printers and save the selection.
+Pure Node `http` server. Endpoints: `GET /` (HTML page, inlined in the source, token injected server-side), `GET /api/config`, `GET /api/printers`, `POST /api/config` (requires `token` in body). The page uses `fetch` to list printers and save the selection. CORS reflects only allowlisted origins (`isSettingsOriginAllowed`) — never `*`.
 
 ### Config persistence (`config-store.ts`)
 

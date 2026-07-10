@@ -11,6 +11,8 @@ import { BRIDGE_HOST, UI_PORT, WS_PORT } from './ports';
 import { warmupSendRawPrintScript } from './send-raw-print-script';
 import { logPackagedStartupBanner } from './console-exit';
 import { readUserConfig } from './config-store';
+import { isOriginAllowed } from './allowed-origins';
+import { PRINT_BRIDGE_SHARED_TOKEN } from './bridge-token';
 import { BridgeEventBus } from './bridge-events';
 import type { BridgeStatus, BridgeNotification } from './bridge-events';
 
@@ -118,7 +120,15 @@ export async function startBridge(options?: {
     }
   });
 
-  const wss = new WebSocketServer({ host, port: WS_PORT });
+  const wss = new WebSocketServer({
+    host,
+    port: WS_PORT,
+    verifyClient: (info, cb) => {
+      if (isOriginAllowed(info.origin, suppressConsole)) return cb(true);
+      fileLog.error(`WS rechazado: origin no permitido "${info.origin}"`);
+      cb(false, 403, 'Origin no permitido');
+    },
+  });
 
   wss.on('error', (err: NodeJS.ErrnoException) => {
     fileLog.error(`websocket server error: ${err.message}`);
@@ -176,6 +186,12 @@ export async function startBridge(options?: {
             error: 'Mensaje inválido; espere { type: "print", version: 1, thermalPrint }',
           }),
         );
+        return;
+      }
+
+      if (msg.token !== PRINT_BRIDGE_SHARED_TOKEN) {
+        fileLog.error(`WS mensaje rechazado: token inválido (order=${msg.thermalPrint?.orderId})`);
+        socket.send(JSON.stringify({ ok: false, error: 'No autorizado' }));
         return;
       }
 
