@@ -10,6 +10,8 @@ Workflow: [`.github/workflows/print-bridge-release.yml`](../.github/workflows/pr
 | Linux x64 | `electron-builder` (Electron, AppImage) | `maxy-print-bridge-linux-x64.AppImage` |
 
 > Los `.dmg` de macOS **no están firmados ni notarizados** (sin costo de Apple Developer Program) — Gatekeeper los bloquea al descargarlos con el mensaje "está dañado". Ver [docs/deploy/pc-cliente.md#macos](./deploy/pc-cliente.md#macos) para el workaround.
+>
+> El `.AppImage` de Linux requiere **`libfuse2`** instalado en la PC del restaurante — sin eso no abre y no muestra ningún error. Ver [docs/troubleshooting-linux-appimage.md](./troubleshooting-linux-appimage.md).
 
 `workflow_dispatch` → artifacts descargables sin publicar release. No hace falta configurar secretos extra.
 

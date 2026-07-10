@@ -56,20 +56,32 @@ El paso 3 (`xattr -cr`) es la única forma sin costo de evitarlo — hay que eje
 
 ## Linux (Ubuntu / Debian)
 
-Requisito previo: CUPS instalado.
+Desde v1.3 es una app Electron con **bandeja del sistema** (igual que Windows/macOS), empaquetada como **AppImage** — ya no es un binario de consola.
+
+### Requisitos previos
 
 ```bash
+# CUPS (impresión)
 sudo apt-get update && sudo apt-get install -y cups
 sudo systemctl enable cups && sudo systemctl start cups
+
+# FUSE (obligatorio para que el AppImage arranque)
+sudo apt-get install -y libfuse2
 ```
 
-1. Descargar **`maxy-print-bridge-linux-x64`** desde GitHub Releases.
+**`libfuse2` es obligatorio.** Sin él, el AppImage no muestra ningún error — simplemente no pasa nada al ejecutarlo. Ubuntu 22.04+ y 24.04 no lo traen instalado por defecto. Ver [troubleshooting-linux-appimage.md](../troubleshooting-linux-appimage.md) si ya lo tenés instalado y sigue sin abrir.
+
+### Instalar y usar
+
+1. Descargar **`maxy-print-bridge-linux-x64.AppImage`** desde GitHub Releases.
 2. Dar permiso de ejecución y lanzar:
    ```bash
-   chmod +x ./maxy-print-bridge-linux-x64
-   ./maxy-print-bridge-linux-x64
+   chmod +x ./maxy-print-bridge-linux-x64.AppImage
+   ./maxy-print-bridge-linux-x64.AppImage
    ```
-3. Abrir **`http://127.0.0.1:17881`** → elegir impresora → **Guardar**.
+   (También se puede dar doble clic desde el explorador de archivos si el permiso de ejecución ya está dado — pero para diagnosticar cualquier problema, correrlo desde una terminal muestra los errores que un doble clic oculta.)
+3. Buscar el ícono **Maxy Print Bridge** en la bandeja del sistema. Algunos entornos GNOME sin extensión de bandeja (AppIndicator) no lo muestran — ver [troubleshooting-linux-appimage.md](../troubleshooting-linux-appimage.md).
+4. Clic en el ícono (o abrir **`http://127.0.0.1:17881`**) → elegir impresora → **Guardar**.
 
 Si la impresora no aparece en la lista, verificar que CUPS la detecta:
 ```bash

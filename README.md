@@ -4,7 +4,7 @@ Programa **local para Windows** que imprime tickets térmicos desde el panel web
 
 El panel (en internet) avisa al programa (en la misma PC de caja) y este manda el ticket a la impresora.
 
-> **v1.3 — bandeja del sistema:** el programa ya no abre ventana de consola. Busque el icono **Maxy Print Bridge** en la bandeja del sistema (flecha ↑ junto al reloj). macOS y Linux siguen con binario de consola hasta v2.x.
+> **v1.3 — bandeja del sistema:** el programa ya no abre ventana de consola en ninguna plataforma (Windows, macOS, Linux) — busque el icono **Maxy Print Bridge** en la bandeja del sistema. En Linux es un **AppImage** que requiere `libfuse2` instalado; ver [docs/troubleshooting-linux-appimage.md](./docs/troubleshooting-linux-appimage.md) si se descarga pero no abre.
 
 ---
 
@@ -54,6 +54,7 @@ El programa imprime en la impresora térmica
 | [docs/ci.md](./docs/ci.md) | Workflow de GitHub Actions por plataforma |
 | [docs/protocolo-ws.md](./docs/protocolo-ws.md) | Protocolo WebSocket (puerto 17880) y estructura del proyecto |
 | [docs/faq.md](./docs/faq.md) | Preguntas frecuentes |
-| [docs/troubleshooting-tray-icon.md](./docs/troubleshooting-tray-icon.md) | Postmortem técnico: ícono de bandeja en blanco/negro y `.exe` de `release/` con ícono viejo |
+| [docs/troubleshooting-tray-icon.md](./docs/troubleshooting-tray-icon.md) | Postmortem técnico (Windows): ícono de bandeja en blanco/negro y `.exe` de `release/` con ícono viejo |
+| [docs/troubleshooting-linux-appimage.md](./docs/troubleshooting-linux-appimage.md) | Postmortem técnico (Linux): el AppImage se descarga pero no abre |
 | [docs/deploy/](./docs/deploy/README.md) | Referencia técnica de despliegue: PC cliente, backend (Railway), panel (variables `VITE_*`) |
 | [ICONS.md](./ICONS.md) | Cómo reemplazar los íconos placeholder por el diseño real |

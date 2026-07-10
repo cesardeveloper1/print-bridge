@@ -4,7 +4,10 @@
 No. Descargar, abrir, elegir impresora.
 
 **¿Mac o Linux?**
-Impresión térmica sí. Bandeja del sistema solo **Windows** en v1.3 (macOS/Linux siguen con terminal hasta v2.x).
+Impresión térmica sí, y desde v1.3 también corren como app de bandeja del sistema (Electron), igual que Windows — ya no son binarios de consola. En Linux el artefacto es un **AppImage**; requiere `libfuse2` instalado en la PC del restaurante o no abre (ver [troubleshooting-linux-appimage.md](./troubleshooting-linux-appimage.md)). En macOS no está firmada/notarizada, así que Gatekeeper la bloquea salvo que se limpie la cuarentena (ver [pc-cliente.md#macos](./deploy/pc-cliente.md#macos)).
+
+**Descargué el AppImage de Linux, le doy doble clic y no pasa nada.**
+Casi siempre falta `libfuse2` (Ubuntu 22.04+ y 24.04 no lo traen por defecto) — sin eso el AppImage no muestra ningún error, simplemente no arranca. Ver [troubleshooting-linux-appimage.md](./troubleshooting-linux-appimage.md) para el diagnóstico completo y el fix.
 
 **¿El `.exe` lee `.env`?**
 No. Las `VITE_*` van en el **build del panel**, no en la PC del local.
