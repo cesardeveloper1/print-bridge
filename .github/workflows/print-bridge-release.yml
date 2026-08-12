@@ -34,13 +34,28 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Restore Electron binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\electron\Cache
+          key: electron-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('package-lock.json') }}
+
       - name: Write .env (PRINT_BRIDGE_TOKEN)
         shell: pwsh
         run: "'PRINT_BRIDGE_TOKEN=${{ secrets.PRINT_BRIDGE_TOKEN }}' | Out-File -FilePath .env -Encoding utf8"
 
       - name: Install dependencies and build Electron artifacts
+        shell: pwsh
         run: |
-          npm ci
+          $attempts = 3
+          for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+            npm ci --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($attempt -eq $attempts) { throw "npm ci failed after $attempts attempts" }
+            $delay = $attempt * 20
+            Write-Host "npm ci failed; retrying in $delay seconds (attempt $attempt/$attempts)"
+            Start-Sleep -Seconds $delay
+          }
           npm run dist:win
 
       - name: Verify artifacts
@@ -87,12 +102,27 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Restore Electron binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/electron
+          key: electron-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('package-lock.json') }}
+
       - name: Write .env (PRINT_BRIDGE_TOKEN)
         run: echo "PRINT_BRIDGE_TOKEN=${{ secrets.PRINT_BRIDGE_TOKEN }}" > .env
 
       - name: Install dependencies and build macOS Intel DMG
         run: |
-          npm ci
+          for attempt in 1 2 3; do
+            npm ci --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000 && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "npm ci failed after 3 attempts"
+              exit 1
+            fi
+            delay=$((attempt * 20))
+            echo "npm ci failed; retrying in ${delay}s (attempt ${attempt}/3)"
+            sleep "$delay"
+          done
           npm run dist:mac:x64
 
       - name: Verify artifact
@@ -130,12 +160,27 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Restore Electron binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/electron
+          key: electron-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('package-lock.json') }}
+
       - name: Write .env (PRINT_BRIDGE_TOKEN)
         run: echo "PRINT_BRIDGE_TOKEN=${{ secrets.PRINT_BRIDGE_TOKEN }}" > .env
 
       - name: Install dependencies and build macOS Apple Silicon DMG
         run: |
-          npm ci
+          for attempt in 1 2 3; do
+            npm ci --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000 && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "npm ci failed after 3 attempts"
+              exit 1
+            fi
+            delay=$((attempt * 20))
+            echo "npm ci failed; retrying in ${delay}s (attempt ${attempt}/3)"
+            sleep "$delay"
+          done
           npm run dist:mac:arm64
 
       - name: Verify artifact
@@ -173,6 +218,12 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Restore Electron binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron
+          key: electron-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install Linux dependencies for AppImage
         run: |
           sudo apt-get update
@@ -183,7 +234,16 @@ jobs:
 
       - name: Install dependencies and build Linux AppImage
         run: |
-          npm ci
+          for attempt in 1 2 3; do
+            npm ci --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000 && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "npm ci failed after 3 attempts"
+              exit 1
+            fi
+            delay=$((attempt * 20))
+            echo "npm ci failed; retrying in ${delay}s (attempt ${attempt}/3)"
+            sleep "$delay"
+          done
           npm run dist:linux
 
       - name: Verify artifact
