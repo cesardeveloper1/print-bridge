@@ -16,7 +16,17 @@ function isSettingsOriginAllowed(origin: string | undefined): boolean {
 function corsHeaders(origin: string | undefined): Record<string, string> {
   const allowed = isSettingsOriginAllowed(origin);
   return allowed && origin
-    ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }
+    ? {
+        'Access-Control-Allow-Origin': origin,
+        Vary: 'Origin, Access-Control-Request-Private-Network',
+      }
+    : {};
+}
+
+function privateNetworkHeaders(req: http.IncomingMessage, origin: string | undefined): Record<string, string> {
+  const isPnaPreflight = req.headers['access-control-request-private-network'] === 'true';
+  return isPnaPreflight && isSettingsOriginAllowed(origin)
+    ? { 'Access-Control-Allow-Private-Network': 'true' }
     : {};
 }
 
@@ -314,6 +324,7 @@ export function startSettingsServer(
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
         ...corsHeaders(origin),
+        ...privateNetworkHeaders(req, origin),
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       });
