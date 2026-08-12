@@ -292,14 +292,60 @@ export async function startBridge(options?: {
     });
   });
 
+  let stopPromise: Promise<void> | null = null;
+
+  const closeServer = (
+    name: string,
+    close: (callback: (err?: Error) => void) => void,
+  ): Promise<void> =>
+    new Promise((resolve) => {
+      try {
+        close((err) => {
+          if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
+            fileLog.warn(`error cerrando ${name}: ${err.message}`);
+          }
+          resolve();
+        });
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code !== 'ERR_SERVER_NOT_RUNNING') {
+          fileLog.warn(`error cerrando ${name}: ${(err as Error).message}`);
+        }
+        resolve();
+      }
+    });
+
+  const stop = (): Promise<void> => {
+    if (stopPromise) return stopPromise;
+
+    stopPromise = new Promise((resolve) => {
+      const clientCount = wss.clients.size;
+      fileLog.info(`deteniendo bridge; terminando ${clientCount} cliente(s) WS`);
+      for (const client of wss.clients) {
+        client.terminate();
+      }
+
+      const timeout = setTimeout(() => {
+        fileLog.warn('timeout cerrando servidores del bridge; continuando salida');
+        resolve();
+      }, 2000);
+
+      void Promise.all([
+        closeServer('servidor WebSocket', (callback) => wss.close(callback)),
+        closeServer('servidor de configuración', (callback) => settingsServer.close(callback)),
+      ]).then(() => {
+        clearTimeout(timeout);
+        fileLog.info('servidores del bridge cerrados correctamente');
+        resolve();
+      });
+    });
+
+    return stopPromise;
+  };
+
   const handle: BridgeHandle = {
     getStatus: () => ({ ...status }),
-    stop: () =>
-      new Promise((resolve) => {
-        wss.close(() => {
-          settingsServer.close(() => resolve());
-        });
-      }),
+    stop,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     on: ((event: string, listener: (arg: any) => void) => {
       bus.on(event, listener);

@@ -48,6 +48,7 @@ app.on('window-all-closed', () => { /* keep running in tray */ });
 let tray: Tray | null = null;
 let bridge: BridgeHandle | null = null;
 let lastStatus: BridgeStatus | null = null;
+let isQuitting = false;
 
 /** Puerto real del WS (puede diferir de WS_PORT si el preferido estaba ocupado). */
 function currentWsUrl(): string {
@@ -252,6 +253,8 @@ async function handleTestPrint(): Promise<void> {
 }
 
 async function handleQuit(): Promise<void> {
+  if (isQuitting) return;
+  isQuitting = true;
   if (bridge) {
     try {
       await bridge.stop();
@@ -284,11 +287,19 @@ app.whenReady().then(() => {
     .then((b) => {
       bridge = b;
 
-      b.on('status', (s: BridgeStatus) => {
+      const applyBridgeStatus = (s: BridgeStatus) => {
         lastStatus = s;
         if (tray) applyStatusToTray(tray, s);
         refreshTrayMenu();
+      };
+
+      b.on('status', (s: BridgeStatus) => {
+        applyBridgeStatus(s);
       });
+
+      // startBridge() emits its initial status before resolving. Apply the
+      // snapshot as well so the tray never remains at its placeholder state.
+      applyBridgeStatus(b.getStatus());
 
       b.on('notification', (n) => {
         showNotification(n.title, n.body);
