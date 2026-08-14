@@ -1,0 +1,25 @@
+contract=1 paper=58mm columns=32
+TEXT align=center style=bold size=1x1 "PIZZERÍA ÑAM"
+DIVIDER style=solid
+TEXT align=center style=bold size=2x2 "#0007"
+DIVIDER style=solid
+TEXT align=center style=bold size=1x1 "RECOJO"
+DIVIDER style=solid
+TEXT align=center style=normal size=1x1 "Ref: PIZZA-20260813-0007"
+DIVIDER style=solid
+TEXT align=center style=bold size=1x1 "Mesa 7"
+TEXT align=center style=normal size=1x1 "13/08/2026  12:00"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Cant. Producto"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "1x PIZZA SÚPER GIGANTE 40CM"
+TEXT align=left style=normal size=1x1 "  + Mitad pepperoni"
+TEXT align=left style=normal size=1x1 "  + Mitad hawaiana"
+TEXT align=left style=normal size=1x1 "  ★ Bien cocida"
+DIVIDER style=solid
+TEXT align=left style=bold size=1x1 "★ Notas del pedido:"
+TEXT align=left style=normal size=1x1 "ALERGIA: sin aceitunas"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Impreso: 2026-08-13T12:00:10"
+FEED lines=1
+CUT

@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agiliza360.ai/contracts/thermal-print-v1.schema.json",
+  "title": "Agiliza360 ThermalPrintPayload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "triggerStatus", "orderId", "brandSubdomain", "statusLabel", "items", "printedAt"],
+  "properties": {
+    "version": { "const": 1 },
+    "triggerStatus": { "enum": ["PREORDER", "ACEPTED"] },
+    "ticketType": { "enum": ["full", "kitchen"] },
+    "orderId": { "type": "string", "minLength": 1 },
+    "orderNumber": { "type": "string" },
+    "brandSubdomain": { "type": "string", "minLength": 1 },
+    "brandName": { "type": "string" },
+    "branchName": { "type": "string" },
+    "branchExternalId": { "type": "string" },
+    "statusLabel": { "type": "string", "minLength": 1 },
+    "customerName": { "type": "string" },
+    "customerPhone": { "type": "string" },
+    "deliveryMode": { "type": "string" },
+    "deliveryAddress": { "type": "string" },
+    "deliveryAddressRef": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/lineItem" }
+    },
+    "productsSubtotal": { "type": "number" },
+    "deliveryCost": { "type": "number" },
+    "discountAmount": { "type": "number" },
+    "total": { "type": "number" },
+    "paymentLabel": { "type": "string" },
+    "specialNotes": { "type": "string" },
+    "summary": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "currencySymbol": { "type": "string" },
+    "printedAt": { "type": "string", "minLength": 1 },
+    "ticketConfig": { "$ref": "#/$defs/brandTicketConfig" },
+    "pdfBase64": { "type": "string" }
+  },
+  "$defs": {
+    "lineItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "quantity"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "quantity": { "type": "number", "exclusiveMinimum": 0 },
+        "unitPrice": { "type": "number" },
+        "lineTotal": { "type": "number" },
+        "modifiers": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      }
+    },
+    "fieldStyle": { "enum": ["normal", "bold", "inverted"] },
+    "dividerStyle": { "enum": ["none", "dashed", "solid"] },
+    "ticketBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "visible", "style"],
+      "properties": {
+        "order": { "type": "integer" },
+        "visible": { "type": "boolean" },
+        "style": { "$ref": "#/$defs/fieldStyle" }
+      }
+    },
+    "customerBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "visible", "style", "showPhone", "showAddress"],
+      "properties": {
+        "order": { "type": "integer" },
+        "visible": { "type": "boolean" },
+        "style": { "$ref": "#/$defs/fieldStyle" },
+        "showPhone": { "type": "boolean" },
+        "showAddress": { "type": "boolean" }
+      }
+    },
+    "itemsBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "style", "showPrices"],
+      "properties": {
+        "order": { "type": "integer" },
+        "style": { "$ref": "#/$defs/fieldStyle" },
+        "showPrices": { "type": "boolean" }
+      }
+    },
+    "dividers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "orderNumber": { "$ref": "#/$defs/dividerStyle" },
+        "deliveryMode": { "$ref": "#/$defs/dividerStyle" },
+        "orderId": { "$ref": "#/$defs/dividerStyle" },
+        "customer": { "$ref": "#/$defs/dividerStyle" },
+        "items": { "$ref": "#/$defs/dividerStyle" },
+        "notes": { "$ref": "#/$defs/dividerStyle" },
+        "totals": { "$ref": "#/$defs/dividerStyle" },
+        "payment": { "$ref": "#/$defs/dividerStyle" },
+        "address": { "$ref": "#/$defs/dividerStyle" },
+        "footer": { "$ref": "#/$defs/dividerStyle" }
+      }
+    },
+    "ticketTypeConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "showHeader", "headerTitle", "headerStyle", "showOrderNumber", "orderNumberOrder",
+        "showDeliveryMode", "deliveryModeOrder", "showOrderId", "orderIdOrder", "orderIdStyle",
+        "customer", "items", "totals", "payment", "notes", "showFooter", "footerLine1",
+        "footerLine2", "footerStyle"
+      ],
+      "properties": {
+        "dividers": { "$ref": "#/$defs/dividers" },
+        "showHeader": { "type": "boolean" },
+        "headerTitle": { "type": "string" },
+        "headerStyle": { "$ref": "#/$defs/fieldStyle" },
+        "showOrderNumber": { "type": "boolean" },
+        "orderNumberOrder": { "type": "integer" },
+        "showDeliveryMode": { "type": "boolean" },
+        "deliveryModeOrder": { "type": "integer" },
+        "showOrderId": { "type": "boolean" },
+        "orderIdOrder": { "type": "integer" },
+        "orderIdStyle": { "$ref": "#/$defs/fieldStyle" },
+        "customer": { "$ref": "#/$defs/customerBlock" },
+        "items": { "$ref": "#/$defs/itemsBlock" },
+        "totals": { "$ref": "#/$defs/ticketBlock" },
+        "payment": { "$ref": "#/$defs/ticketBlock" },
+        "notes": { "$ref": "#/$defs/ticketBlock" },
+        "showFooter": { "type": "boolean" },
+        "footerLine1": { "type": "string" },
+        "footerLine2": { "type": "string" },
+        "footerStyle": { "$ref": "#/$defs/fieldStyle" }
+      }
+    },
+    "brandTicketConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "full": { "$ref": "#/$defs/ticketTypeConfig" },
+        "kitchen": { "$ref": "#/$defs/ticketTypeConfig" },
+        "headerTitle": { "type": "string" },
+        "showOrderId": { "type": "boolean" },
+        "showCustomerPhone": { "type": "boolean" },
+        "showDeliveryAddress": { "type": "boolean" },
+        "showItemPrices": { "type": "boolean" },
+        "showTotals": { "type": "boolean" },
+        "showPaymentMethod": { "type": "boolean" },
+        "showSpecialNotes": { "type": "boolean" },
+        "footerLine1": { "type": "string" },
+        "footerLine2": { "type": "string" }
+      }
+    }
+  }
+}

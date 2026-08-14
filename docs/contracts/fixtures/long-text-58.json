@@ -1,0 +1,30 @@
+{
+  "name": "long-text-58",
+  "options": { "lineWidth": 32, "paperWidthMm": 58 },
+  "payload": {
+    "version": 1,
+    "triggerStatus": "ACEPTED",
+    "ticketType": "full",
+    "orderId": "order-fixture-long",
+    "orderNumber": "LONG-20260813-0999",
+    "brandSubdomain": "cevicheria",
+    "brandName": "Cevichería Pacífico",
+    "statusLabel": "Aceptado",
+    "customerName": "Ángela Muñoz",
+    "deliveryMode": "Delivery",
+    "items": [
+      {
+        "name": "Combo familiar extraordinariamente largo con bebida y acompañamiento",
+        "quantity": 12,
+        "unitPrice": 1234.5,
+        "lineTotal": 14814,
+        "notes": "Añadir limón"
+      }
+    ],
+    "productsSubtotal": 14814,
+    "total": 14814,
+    "specialNotes": "Texto largo para comprobar el ajuste automático sin truncar información importante.",
+    "createdAt": "2026-08-13T18:00:00",
+    "printedAt": "2026-08-13T18:00:03"
+  }
+}

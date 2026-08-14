@@ -1,0 +1,40 @@
+{
+  "name": "full-80",
+  "options": { "lineWidth": 48, "paperWidthMm": 80 },
+  "payload": {
+    "version": 1,
+    "triggerStatus": "ACEPTED",
+    "ticketType": "full",
+    "orderId": "order-fixture-full",
+    "orderNumber": "SMASH-20260813-0042",
+    "brandSubdomain": "smashburger",
+    "brandName": "Smash Burger",
+    "branchName": "Miraflores",
+    "statusLabel": "Aceptado",
+    "customerName": "Cliente Prueba",
+    "customerPhone": "+51 900 000 000",
+    "deliveryMode": "Delivery",
+    "deliveryAddress": "Av. Ejemplo 123",
+    "deliveryAddressRef": "Puerta azul",
+    "items": [
+      {
+        "name": "SMASH CLÁSICA | 1 CARNE",
+        "quantity": 2,
+        "unitPrice": 15,
+        "lineTotal": 30,
+        "modifiers": ["Sin cebolla", "Extra queso x1"]
+      },
+      { "name": "Coca Cola", "quantity": 1, "unitPrice": 5, "lineTotal": 5 }
+    ],
+    "productsSubtotal": 35,
+    "deliveryCost": 4,
+    "discountAmount": 2,
+    "total": 37,
+    "paymentLabel": "Yape",
+    "specialNotes": "Tocar el timbre una vez.",
+    "summary": "2 hamburguesas y 1 bebida",
+    "createdAt": "2026-08-13T15:20:00",
+    "currencySymbol": "S/",
+    "printedAt": "2026-08-13T15:21:00"
+  }
+}

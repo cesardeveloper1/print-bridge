@@ -36,7 +36,7 @@ Both bind to `127.0.0.1` only — no external exposure. Both also validate the b
 1. The panel (browser) opens a WebSocket to `ws://127.0.0.1:17880`.
 2. It sends `{ type: "print", version: 1, token: "...", thermalPrint: ThermalPrintPayload }`.
 3. `bridge.ts` validates the origin (handshake), the token, and enqueues the job via `SerialPrintQueue` (concurrency = 1).
-4. `format-ticket.ts` builds the ESC/POS ticket using `node-thermal-printer` (EPSON driver, `printer:<name>` interface) and calls `printer.execute()`.
+4. `ticket-builder.ts` builds a portable `TicketDocument`; `escpos-encoder.ts` converts it to an Epson/PC850 buffer and `format-ticket.ts` sends the raw bytes to the selected OS printer.
 5. The socket receives `{ ok: true }` or `{ ok: false, error: "..." }`.
 
 ### Security (`allowed-origins.ts`, `bridge-token.ts`)
@@ -63,7 +63,7 @@ Calls `powershell -NoProfile -Command "Get-CimInstance Win32_Printer ..."` via `
 
 ## Types (`src/types.ts`)
 
-`ThermalPrintPayload` is the canonical shape for a print job. It is produced by the backend (`ssgg`) and consumed here — keep both in sync if fields change.
+`ThermalPrintPayload` is the canonical TypeScript shape for a print job. The portable schema, synthetic fixtures and semantic snapshots live in `docs/contracts/`; update them together with `src/types.ts` when the contract changes.
 
 ## Release / CI
 

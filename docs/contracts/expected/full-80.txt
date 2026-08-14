@@ -1,0 +1,40 @@
+contract=1 paper=80mm columns=48
+TEXT align=center style=bold size=1x1 "SMASH BURGER"
+DIVIDER style=solid
+TEXT align=center style=bold size=2x2 "#0042"
+DIVIDER style=solid
+TEXT align=center style=bold size=1x1 "DELIVERY"
+DIVIDER style=solid
+TEXT align=center style=normal size=1x1 "Ref: SMASH-20260813-0042"
+DIVIDER style=solid
+TEXT align=center style=bold size=1x1 "Cliente Prueba"
+TEXT align=center style=normal size=1x1 "13/08/2026  15:20"
+TEXT align=center style=normal size=1x1 "Tel: +51 900 000 000"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Cant. Producto                            Precio"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "2x SMASH CLÁSICA | 1 CARNE              S/ 30.00"
+TEXT align=left style=normal size=1x1 "  + Sin cebolla"
+TEXT align=left style=normal size=1x1 "  + Extra queso x1"
+TEXT align=left style=normal size=1x1 "1x Coca Cola                             S/ 5.00"
+DIVIDER style=solid
+PAIR style=normal "Subtotal" | "S/ 35.00"
+PAIR style=normal "Delivery" | "S/ 4.00"
+PAIR style=normal "Descuento" | "-S/ 2.00"
+PAIR style=bold "TOTAL" | "S/ 37.00"
+TEXT align=left style=normal size=1x1 "Pago: Yape"
+DIVIDER style=solid
+TEXT align=left style=bold size=1x1 "★ Notas del pedido:"
+TEXT align=left style=normal size=1x1 "Tocar el timbre una vez."
+DIVIDER style=solid
+TEXT align=left style=bold size=1x1 "Resumen:"
+TEXT align=left style=normal size=1x1 "2 hamburguesas y 1 bebida"
+DIVIDER style=solid
+TEXT align=left style=bold size=1x1 "Direccion:"
+TEXT align=left style=normal size=1x1 "Av. Ejemplo 123"
+TEXT align=left style=normal size=1x1 "Referencia:"
+TEXT align=left style=normal size=1x1 "Puerta azul"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Impreso: 2026-08-13T15:21:00"
+FEED lines=1
+CUT

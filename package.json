@@ -8,6 +8,7 @@
     "generate:bridge-token": "node scripts/generate-bridge-token.mjs",
     "predev": "npm run generate:bridge-token",
     "build": "tsc",
+    "test": "npm run build && node --test dist/ticket-builder.test.js",
     "prebuild": "npm run generate:bridge-token",
     "start": "node dist/src/index.js",
     "dev": "npx ts-node --transpile-only src/index.ts",

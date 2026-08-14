@@ -1,0 +1,16 @@
+contract=1 paper=80mm columns=48
+DIVIDER style=solid
+TEXT align=center style=bold size=2x2 "#0001"
+DIVIDER style=solid
+TEXT align=center style=bold size=1x1 "LOCAL"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Cant. Producto"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "1x Producto sin precio"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Gracias Marca Demo"
+TEXT align=left style=normal size=1x1 "Pedido order-fixture-hidden"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Impreso: 2026-08-13T09:00:00"
+FEED lines=1
+CUT

@@ -1,0 +1,45 @@
+{
+  "name": "hidden-sections-80",
+  "options": { "lineWidth": 48, "paperWidthMm": 80 },
+  "payload": {
+    "version": 1,
+    "triggerStatus": "ACEPTED",
+    "ticketType": "full",
+    "orderId": "order-fixture-hidden",
+    "orderNumber": "HIDDEN-0001",
+    "brandSubdomain": "demo",
+    "brandName": "Marca Demo",
+    "statusLabel": "Aceptado",
+    "customerName": "No mostrar",
+    "customerPhone": "+51 922 222 222",
+    "deliveryMode": "Local",
+    "items": [{ "name": "Producto sin precio", "quantity": 1, "lineTotal": 10 }],
+    "total": 10,
+    "paymentLabel": "Tarjeta",
+    "specialNotes": "No mostrar notas",
+    "printedAt": "2026-08-13T09:00:00",
+    "ticketConfig": {
+      "full": {
+        "showHeader": false,
+        "headerTitle": "",
+        "headerStyle": "bold",
+        "showOrderNumber": true,
+        "orderNumberOrder": -2,
+        "showDeliveryMode": true,
+        "deliveryModeOrder": -1,
+        "showOrderId": false,
+        "orderIdOrder": 0,
+        "orderIdStyle": "normal",
+        "customer": { "order": 1, "visible": false, "style": "normal", "showPhone": false, "showAddress": false },
+        "items": { "order": 2, "style": "normal", "showPrices": false },
+        "totals": { "order": 3, "visible": false, "style": "normal" },
+        "payment": { "order": 4, "visible": false, "style": "normal" },
+        "notes": { "order": 5, "visible": false, "style": "normal" },
+        "showFooter": true,
+        "footerLine1": "Gracias {nombre_marca}",
+        "footerLine2": "Pedido {pedido}",
+        "footerStyle": "normal"
+      }
+    }
+  }
+}

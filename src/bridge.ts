@@ -16,6 +16,7 @@ import { isOriginAllowed } from './allowed-origins';
 import { PRINT_BRIDGE_SHARED_TOKEN } from './bridge-token';
 import { BridgeEventBus } from './bridge-events';
 import type { BridgeStatus, BridgeNotification } from './bridge-events';
+import { isThermalPrintPayloadV1 } from './contract-validation';
 
 export type { BridgeStatus, BridgeNotification };
 export type { BridgeState } from './bridge-events';
@@ -87,7 +88,7 @@ function parseMessage(text: string): PrintJobMessage | null {
     if (!data || typeof data !== 'object') return null;
     const o = data as Record<string, unknown>;
     if (o.type !== 'print' || o.version !== 1) return null;
-    if (!o.thermalPrint || typeof o.thermalPrint !== 'object') return null;
+    if (!isThermalPrintPayloadV1(o.thermalPrint)) return null;
     return data as PrintJobMessage;
   } catch {
     return null;

@@ -1,0 +1,30 @@
+contract=1 paper=58mm columns=32
+TEXT align=center style=bold size=1x1 "CEVICHERÍA PACÍFICO"
+DIVIDER style=solid
+TEXT align=center style=bold size=2x2 "#0999"
+DIVIDER style=solid
+TEXT align=center style=bold size=1x1 "DELIVERY"
+DIVIDER style=solid
+TEXT align=center style=normal size=1x1 "Ref: LONG-20260813-0999"
+DIVIDER style=solid
+TEXT align=center style=bold size=1x1 "Ángela Muñoz"
+TEXT align=center style=normal size=1x1 "13/08/2026  18:00"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Cant. Producto            Precio"
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "12x Combo familiar e"
+TEXT align=left style=normal size=1x1 "    xtraordinariamen"
+TEXT align=left style=normal size=1x1 "    te largo con beb"
+TEXT align=left style=normal size=1x1 "    ida y acompañami"
+TEXT align=left style=normal size=1x1 "    ento             S/ 14814.00"
+TEXT align=left style=normal size=1x1 "  ★ Añadir limón"
+DIVIDER style=solid
+PAIR style=normal "Subtotal" | "S/ 14814.00"
+PAIR style=bold "TOTAL" | "S/ 14814.00"
+DIVIDER style=solid
+TEXT align=left style=bold size=1x1 "★ Notas del pedido:"
+TEXT align=left style=normal size=1x1 "Texto largo para comprobar el ajuste automático sin truncar información importante."
+DIVIDER style=solid
+TEXT align=left style=normal size=1x1 "Impreso: 2026-08-13T18:00:03"
+FEED lines=1
+CUT
